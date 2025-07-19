@@ -158,6 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initMenus();
 });
 
-goToInputBtn.addEventListener('click', () => {
+goToInputBtn?.addEventListener('click', () => {
   window.location.href = 'index.html';
 });
