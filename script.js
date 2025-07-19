@@ -1,3 +1,6 @@
+// players.js에서 데이터를 직접 불러오는 방식으로 fetch 제거
+// JSON 대신 JS 객체를 사용 (GitHub Pages에서 JSON 로딩 오류 방지)
+
 // DOM 요소
 const goToInputBtn = document.getElementById('goToInputBtn');
 const hitterMenu = document.getElementById('hitterMenu');
@@ -8,20 +11,11 @@ const recentMvpInfo = document.getElementById('recentMvpInfo');
 const mvpRankingTableBody = document.querySelector('#mvpRankingTable tbody');
 const teamStatsTableBody = document.querySelector('#teamStatsTable tbody');
 
-const hitterStatsForRanking = ['타율', '홈랭', '출료율', 'OPS', '타점'];
+const hitterStatsForRanking = ['타율', '홈런', '출루율', 'OPS', '타점'];
 const pitcherStatsForRanking = ['승리', '세이브', '홀드', '삼진', 'ERA', 'WHIP'];
 
 let currentSort = { column: null, asc: true };
-let players = []; // 전역에서 불러오는 데이터 저장
-
-// fetch JSON from GitHub Pages 경로로 고정 (실제 퍼블릭 URL로 변경)
-function fetchPlayers() {
-  return fetch('https://alex4u-jun.github.io/players.json')
-    .then(res => {
-      if (!res.ok) throw new Error('불러오기 실패');
-      return res.json();
-    });
-}
+let players = []; // playersData를 저장
 
 // MVP
 function loadRecentMvp() {
@@ -157,15 +151,11 @@ searchInput.addEventListener('input', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetchPlayers().then(data => {
-    players = data;
-    loadRecentMvp();
-    renderRanking('타율'); // 초기값
-    initMenus();
-  }).catch(err => {
-    console.error('데이터 로딩 실패:', err);
-    recentMvpInfo.textContent = '선수 데이터를 불러올 수 없습니다.';
-  });
+  // playersData는 players.js에 정의되어 있어야 함
+  players = playersData;
+  loadRecentMvp();
+  renderRanking('타율'); // 초기값
+  initMenus();
 });
 
 goToInputBtn.addEventListener('click', () => {
