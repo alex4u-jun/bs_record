@@ -1,3 +1,68 @@
+// playerData를 직접 포함
+const defaultPlayerData = [
+  {
+    "name": "이원준",
+    "type": "타자",
+    "team": "Leaders",
+    "stats": {
+      "1루타": 3,
+      "2루타": 0,
+      "3루타": 0,
+      "홈런": 0,
+      "삼진": 0,
+      "볼넷": 0,
+      "희생플라이": 0,
+      "내야땅볼": 0,
+      "플라이아웃": 0,
+      "타점": 0
+    },
+    "mvpCount": 2
+  },
+  {
+    "name": "이원준",
+    "type": "투수",
+    "team": "Leaders",
+    "stats": {
+      "투구수": 0,
+      "삼진": 0,
+      "볼넷": 0,
+      "피안타": 0,
+      "피홈런": 0,
+      "자책점": 5,
+      "이닝": 0,
+      "승리": 0,
+      "패배": 0,
+      "홀드": 0,
+      "세이브": 0,
+      "사구": 0
+    },
+    "mvpCount": 1
+  },
+  {
+    "name": "설승환",
+    "type": "타자",
+    "team": "Leaders",
+    "stats": {
+      "1루타": 0,
+      "2루타": 0,
+      "3루타": 1,
+      "홈런": 0,
+      "삼진": 0,
+      "볼넷": 0,
+      "희생플라이": 0,
+      "내야땅볼": 0,
+      "플라이아웃": 0,
+      "타점": 0
+    },
+    "mvpCount": 0
+  }
+];
+
+// localStorage에 이미 데이터가 없을 경우 기본 데이터를 초기화
+const STORAGE_KEY = 'playersData';
+if (!localStorage.getItem(STORAGE_KEY)) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPlayerData));
+}
 // players.json 파일에서 데이터 불러오기 및 localStorage 저장
 fetch('players.json')
   .then(response => {
