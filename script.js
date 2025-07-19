@@ -1,3 +1,30 @@
+// players.json 파일에서 데이터 불러오기 및 localStorage 저장
+fetch('players.json')
+  .then(response => {
+    if (!response.ok) throw new Error('players.json 파일 로딩 실패');
+    return response.json();
+  })
+  .then(data => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    loadRecentMvp();
+    renderMvpRanking();
+    calculateTeamStats();
+    if (currentSort.column) {
+      renderRanking(currentSort.column, currentSort.asc);
+    }
+  })
+  .catch(error => {
+    console.warn('players.json 불러오기 실패, localStorage 데이터 사용 중:', error);
+    loadRecentMvp();
+    renderMvpRanking();
+    calculateTeamStats();
+    if (currentSort.column) {
+      renderRanking(currentSort.column, currentSort.asc);
+    }
+  });
+
+// 기존 코드 유지 (이 아래 기존 코드 붙여넣기)
+
 const STORAGE_KEY = 'playersData';
 
 // DOM 요소
