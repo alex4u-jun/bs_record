@@ -4,10 +4,19 @@
   <meta charset="UTF-8" />
   <title>야구 기록 입력</title>
   <style>
+     body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px 30px;
+      background-color: #f9faff;
+      color: #333;
+      overflow-x: auto;
+    }
     body {
       font-family: Arial, sans-serif;
       max-width: 900px;
-      margin: 40px auto       ;
+      margin: 40px auto;
       padding: 20px 30px;
       background-color: #f9faff;
       color: #333;
@@ -320,161 +329,160 @@
     <button id="saveDuelBtn" style="margin-top: 20px;">대결 기록 저장</button>
   </div>
 
- <!-- 위의 코드 동일 ~ MVP 섹션까지 유지됨 -->
+  <div class="mvp-section">
+    <h2>MVP 선정</h2>
+    <select id="mvpSelect">
+      <option value="" disabled selected>선수 선택</option>
+    </select>
+    <button id="selectMvpBtn">MVP 선정</button>
+    <p id="mvpMessage" class="mvp-message"></p>
+    <button id="exportJsonBtn" style="margin-top: 12px; background: #34a853;">JSON 파일로 내보내기</button>
 
-<div class="mvp-section">
-  <h2>MVP 선정</h2>
-  <select id="mvpSelect">
-    <option value="" disabled selected>선수 선택</option>
-  </select>
-  <button id="selectMvpBtn">MVP 선정</button>
-  <p id="mvpMessage" class="mvp-message"></p>
-  <button id="exportJsonBtn" style="margin-top: 12px; background: #34a853;">JSON 파일로 내보내기</button>
-</div>
+    <!-- ✅ JSON 불러오기 기능 추가 -->
+    <div style="margin-top:12px;">
+      <input type="file" id="importJsonFile" accept="application/json" />
+      <button id="importJsonBtn" style="margin-top: 8px; background: #fbbc05;">JSON 불러오기</button>
+    </div>
+  </div>
 
-<script>
-  const STORAGE_KEY = 'playersData';
-  let players = [];
+  <script>
+    const STORAGE_KEY = 'playersData';
+    let players = [];
 
-  const hitterStatsHeaders = [
-    '1루타', '2루타', '3루타', '홈런', '삼진', '볼넷',
-    '희생플라이', '내야땅볼', '플라이아웃', '타점'
-  ];
-  const pitcherStatsHeaders = [
-    '투구수', '삼진', '볼넷', '피안타', '피홈런',
-    '자책점', '이닝', '승리', '패배', '홀드', '세이브', '사구'
-  ];
+    const hitterStatsHeaders = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
+    const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
 
-  function loadPlayers() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  }
-  function savePlayers(players) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-  }
-
-  function init() {
-    players = loadPlayers();
-    renderPlayerList();
-  }
-
-  document.getElementById('addPlayerForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const name = document.getElementById('playerName').value.trim();
-    const type = document.getElementById('playerType').value;
-    const team = document.getElementById('playerTeam').value;
-
-    if (!name || !team) return alert('모든 값을 입력하세요.');
-    if (players.some(p => p.name === name && p.type === type)) {
-      alert('이미 등록된 선수입니다.');
-      return;
+    function loadPlayers() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    function savePlayers(players) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
     }
 
-    const stats = (type === '타자') ?
-      hitterStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {}) :
-      pitcherStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {});
+    function init() {
+      players = loadPlayers();
+      renderPlayerList();
+    }
 
-    players.push({ name, type, team, stats, mvpCount: 0 });
-    savePlayers(players);
-    renderPlayerList();
-    e.target.reset();
-  });
+    document.getElementById('addPlayerForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('playerName').value.trim();
+      const type = document.getElementById('playerType').value;
+      const team = document.getElementById('playerTeam').value;
+      if (!name || !team) return alert('모든 값을 입력하세요.');
+      if (players.some(p => p.name === name && p.type === type)) return alert('이미 등록된 선수입니다.');
 
-  const playerListDiv = document.getElementById('playerList');
-  playerListDiv.addEventListener('click', e => {
-    const idx = parseInt(e.target.dataset.idx);
-    if (e.target.classList.contains('delete-btn')) {
-      if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
-        players.splice(idx, 1);
+      const stats = (type === '타자') ? hitterStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {}) : pitcherStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {});
+      players.push({ name, type, team, stats, mvpCount: 0 });
+      savePlayers(players);
+      renderPlayerList();
+      e.target.reset();
+    });
+
+    const playerListDiv = document.getElementById('playerList');
+    playerListDiv.addEventListener('click', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      if (e.target.classList.contains('delete-btn')) {
+        if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
+          players.splice(idx, 1);
+          savePlayers(players);
+          renderPlayerList();
+        }
+      } else if (e.target.classList.contains('stat-btn')) {
+        const stat = e.target.dataset.stat;
+        const delta = parseInt(e.target.dataset.delta);
+        if (stat === 'mvpCount') {
+          const newVal = (players[idx].mvpCount || 0) + delta;
+          if (newVal < 0) return;
+          players[idx].mvpCount = newVal;
+        } else {
+          const newVal = players[idx].stats[stat] + delta;
+          if (newVal < 0) return;
+          players[idx].stats[stat] = newVal;
+        }
         savePlayers(players);
         renderPlayerList();
       }
-    } else if (e.target.classList.contains('stat-btn')) {
-      const stat = e.target.dataset.stat;
-      const delta = parseInt(e.target.dataset.delta);
-      if (stat === 'mvpCount') {
-        const newVal = (players[idx].mvpCount || 0) + delta;
-        if (newVal < 0) return;
-        players[idx].mvpCount = newVal;
-      } else {
-        const newVal = players[idx].stats[stat] + delta;
-        if (newVal < 0) return;
-        players[idx].stats[stat] = newVal;
+    });
+
+    function renderPlayerList() {
+      playerListDiv.innerHTML = '';
+      if (players.length === 0) {
+        playerListDiv.textContent = '등록된 선수가 없습니다.';
+        updateMvpSelect();
+        return;
       }
+      players.forEach((player, idx) => {
+        const container = document.createElement('div');
+        let html = `<h3>${player.name} (${player.team} / ${player.type}) <button class="delete-btn" data-idx="${idx}">삭제</button></h3>`;
+        const statsKeys = Object.keys(player.stats);
+        html += '<table><thead><tr>' + statsKeys.map(stat => `<th>${stat}</th>`).join('') + '<th>MVP 횟수</th></tr></thead><tbody><tr>';
+        html += statsKeys.map(stat => `<td class="buttons-cell"><button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="1">▲</button><button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="-1">▼</button></td>`).join('');
+        html += `<td class="buttons-cell"><button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="1">▲</button><button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="-1">▼</button></td></tr><tr>`;
+        html += statsKeys.map(stat => `<td>${player.stats[stat]}</td>`).join('');
+        html += `<td>${player.mvpCount || 0}</td></tr></tbody></table>`;
+        container.innerHTML = html;
+        playerListDiv.appendChild(container);
+      });
+      updateMvpSelect();
+    }
+
+    function updateMvpSelect() {
+      const mvpSelect = document.getElementById('mvpSelect');
+      mvpSelect.innerHTML = '<option value="" disabled selected>선수 선택</option>';
+      players.forEach((p, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `${p.name} (${p.team} / ${p.type})`;
+        mvpSelect.appendChild(option);
+      });
+    }
+
+    document.getElementById('selectMvpBtn').addEventListener('click', () => {
+      const idx = document.getElementById('mvpSelect').value;
+      const mvpMessage = document.getElementById('mvpMessage');
+      if (!idx) return alert('MVP 선수를 선택하세요.');
+      players[idx].mvpCount = (players[idx].mvpCount || 0) + 1;
+      localStorage.setItem('lastMvp', JSON.stringify({ ...players[idx], date: new Date().toISOString() }));
       savePlayers(players);
       renderPlayerList();
-    }
-  });
-
-  function renderPlayerList() {
-    playerListDiv.innerHTML = '';
-    if (players.length === 0) {
-      playerListDiv.textContent = '등록된 선수가 없습니다.';
-      updateMvpSelect();
-      return;
-    }
-    players.forEach((player, idx) => {
-      const container = document.createElement('div');
-      let html = `<h3>${player.name} (${player.team} / ${player.type}) <button class="delete-btn" data-idx="${idx}">삭제</button></h3>`;
-      const statsKeys = Object.keys(player.stats);
-      html += '<table><thead><tr>';
-      statsKeys.forEach(stat => html += `<th>${stat}</th>`);
-      html += '<th>MVP 횟수</th></tr></thead><tbody><tr>';
-      statsKeys.forEach(stat => {
-        html += `<td class="buttons-cell">
-          <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="1">&#x25B2;</button>
-          <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="-1">&#x25BC;</button>
-        </td>`;
-      });
-      html += `<td class="buttons-cell">
-        <button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="1">&#x25B2;</button>
-        <button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="-1">&#x25BC;</button>
-      </td></tr><tr>`;
-      statsKeys.forEach(stat => html += `<td>${player.stats[stat]}</td>`);
-      html += `<td>${player.mvpCount || 0}</td></tr></tbody></table>`;
-      container.innerHTML = html;
-      playerListDiv.appendChild(container);
+      mvpMessage.textContent = `${players[idx].name} 선수가 MVP로 선정되었습니다! (총 ${players[idx].mvpCount}회)`;
+      document.getElementById('mvpSelect').value = '';
     });
-    updateMvpSelect();
-  }
 
-  function updateMvpSelect() {
-    const mvpSelect = document.getElementById('mvpSelect');
-    mvpSelect.innerHTML = '<option value="" disabled selected>선수 선택</option>';
-    players.forEach((p, idx) => {
-      const option = document.createElement('option');
-      option.value = idx;
-      option.textContent = `${p.name} (${p.team} / ${p.type})`;
-      mvpSelect.appendChild(option);
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+      const json = JSON.stringify(players, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'players_export.json';
+      a.click();
+      URL.revokeObjectURL(url);
     });
-  }
 
-  document.getElementById('selectMvpBtn').addEventListener('click', () => {
-    const idx = document.getElementById('mvpSelect').value;
-    const mvpMessage = document.getElementById('mvpMessage');
-    if (!idx) return alert('MVP 선수를 선택하세요.');
-    players[idx].mvpCount = (players[idx].mvpCount || 0) + 1;
-    localStorage.setItem('lastMvp', JSON.stringify({ ...players[idx], date: new Date().toISOString() }));
-    savePlayers(players);
-    renderPlayerList();
-    mvpMessage.textContent = `${players[idx].name} 선수가 MVP로 선정되었습니다! (총 ${players[idx].mvpCount}회)`;
-    document.getElementById('mvpSelect').value = '';
-  });
+    document.getElementById('importJsonBtn').addEventListener('click', () => {
+      const fileInput = document.getElementById('importJsonFile');
+      const file = fileInput.files[0];
+      if (!file) return alert('불러올 JSON 파일을 선택하세요.');
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) throw new Error('형식 오류');
+          players = imported;
+          savePlayers(players);
+          renderPlayerList();
+          alert('JSON 데이터를 성공적으로 불러왔습니다.');
+        } catch (err) {
+          alert('잘못된 JSON 파일입니다.');
+        }
+      };
+      reader.readAsText(file);
+    });
 
-  document.getElementById('exportJsonBtn').addEventListener('click', () => {
-    const json = JSON.stringify(players, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'players_export.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // 투수-타자 대결 검색 및 기록 유지 코드 생략 없이 유지...
-
-  init();
-</script>
+    init();
+  </script>
 </body>
 </html>
