@@ -1,4 +1,5 @@
-[
+// ✅ players.js 최종 구조
+const playersData = [
   {
     "name": "이원준",
     "type": "타자",
@@ -55,4 +56,5 @@
     },
     "mvpCount": 0
   }
-]
+];
+
