@@ -1,3 +1,30 @@
+// static player data (원래 players.json의 내용)
+const staticPlayersData = [
+  {
+    name: "홍길동",
+    team: "서울",
+    type: "타자",
+    stats: {
+      "1루타": 10,
+      "2루타": 3,
+      "3루타": 1,
+      "홈런": 2,
+      "삼진": 5,
+      "내야땅볼": 4,
+      "플라이아웃": 3,
+      "타점": 12,
+      "득점": 8
+    },
+    mvpCount: 2
+  }
+  // 추가 선수들...
+];
+
+// localStorage에 저장 (초기화 시 1회만 수행)
+if (!localStorage.getItem('playersData')) {
+  localStorage.setItem('playersData', JSON.stringify(staticPlayersData));
+}
+
 // players.json 파일에서 데이터 불러오기 및 localStorage 저장
 fetch('players.json')
   .then(response => {
