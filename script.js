@@ -1,5 +1,4 @@
-// players.js에서 데이터를 직접 불러오는 방식으로 fetch 제거
-// JSON 대신 JS 객체를 사용 (GitHub Pages에서 JSON 로딩 오류 방지)
+// GitHub에 업로드된 players.json에서 선수 데이터를 fetch로 불러오기
 
 // DOM 요소
 const goToInputBtn = document.getElementById('goToInputBtn');
@@ -15,9 +14,9 @@ const hitterStatsForRanking = ['타율', '홈런', '출루율', 'OPS', '타점']
 const pitcherStatsForRanking = ['승리', '세이브', '홀드', '삼진', 'ERA', 'WHIP'];
 
 let currentSort = { column: null, asc: true };
-let players = []; // playersData를 저장
+let players = []; // players.json에서 불러온 데이터 저장
 
-// MVP
+// MVP 정보 표시
 function loadRecentMvp() {
   if (players.length === 0) {
     recentMvpInfo.textContent = '선택된 MVP가 없습니다.';
@@ -34,7 +33,7 @@ function loadRecentMvp() {
   `;
 }
 
-// 검색
+// 선수 이름 검색
 function filterByName(players, keyword) {
   if (!keyword) return players;
   const lower = keyword.toLowerCase();
@@ -43,37 +42,41 @@ function filterByName(players, keyword) {
 
 // 통계 계산 함수들
 function calculateAVG(p) {
-  const H = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
-  const AB = H + (p.stats['삼진']||0)+(p.stats['내야땅볼']||0)+(p.stats['플라이아웃']||0);
+  const H = (p.stats['1루타'] || 0) + (p.stats['2루타'] || 0) + (p.stats['3루타'] || 0) + (p.stats['홈런'] || 0);
+  const AB = H + (p.stats['삼진'] || 0) + (p.stats['내야땅볼'] || 0) + (p.stats['플라이아웃'] || 0);
   return AB === 0 ? 0 : H / AB;
 }
 function calculateOBP(p) {
-  const H = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
-  const BB = p.stats['볼넷']||0;
-  const SF = p.stats['희생플라이']||0;
-  const AB = H + (p.stats['삼진']||0)+(p.stats['내야땅볼']||0)+(p.stats['플라이아웃']||0);
+  const H = (p.stats['1루타'] || 0) + (p.stats['2루타'] || 0) + (p.stats['3루타'] || 0) + (p.stats['홈런'] || 0);
+  const BB = p.stats['볼넷'] || 0;
+  const SF = p.stats['희생플라이'] || 0;
+  const AB = H + (p.stats['삼진'] || 0) + (p.stats['내야땅볼'] || 0) + (p.stats['플라이아웃'] || 0);
   const denom = AB + BB + SF;
   return denom === 0 ? 0 : (H + BB) / denom;
 }
 function calculateSLG(p) {
-  const AB = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0)+(p.stats['삼진']||0)+(p.stats['내야땅볼']||0)+(p.stats['플라이아웃']||0);
+  const AB = (p.stats['1루타'] || 0) + (p.stats['2루타'] || 0) + (p.stats['3루타'] || 0) + (p.stats['홈런'] || 0) +
+    (p.stats['삼진'] || 0) + (p.stats['내야땅볼'] || 0) + (p.stats['플라이아웃'] || 0);
   if (AB === 0) return 0;
-  const totalBases = (p.stats['1루타']||0) + 2*(p.stats['2루타']||0) + 3*(p.stats['3루타']||0) + 4*(p.stats['홈런']||0);
+  const totalBases = (p.stats['1루타'] || 0) + 2 * (p.stats['2루타'] || 0) + 3 * (p.stats['3루타'] || 0) + 4 * (p.stats['홈런'] || 0);
   return totalBases / AB;
 }
-function calculateOPS(p) { return calculateOBP(p) + calculateSLG(p); }
+function calculateOPS(p) {
+  return calculateOBP(p) + calculateSLG(p);
+}
 function calculateERA(p) {
-  const ER = p.stats['자책점']||0;
-  const IP = p.stats['이닝']||0;
+  const ER = p.stats['자책점'] || 0;
+  const IP = p.stats['이닝'] || 0;
   return IP === 0 ? 0 : (ER * 9) / IP;
 }
 function calculateWHIP(p) {
-  const BB = p.stats['볼넷']||0;
-  const H = p.stats['피안타']||0;
-  const IP = p.stats['이닝']||0;
+  const BB = p.stats['볼넷'] || 0;
+  const H = p.stats['피안타'] || 0;
+  const IP = p.stats['이닝'] || 0;
   return IP === 0 ? 0 : (BB + H) / IP;
 }
 
+// 통계 이름에 따라 값 반환
 function getStatValue(player, stat) {
   switch (stat) {
     case '타율': return calculateAVG(player);
@@ -98,6 +101,7 @@ function getStatDisplay(p, stat) {
   return val;
 }
 
+// 순위 테이블 렌더링
 function renderRanking(stat) {
   let filtered = players.filter(p => {
     return hitterStatsForRanking.includes(stat) ? p.type === '타자' : p.type === '투수';
@@ -132,6 +136,7 @@ function renderRanking(stat) {
   rankingContent.appendChild(table);
 }
 
+// 메뉴 클릭 처리
 function initMenus() {
   function handler(e, isPitcher) {
     if (e.target.tagName !== 'LI') return;
@@ -146,18 +151,28 @@ function initMenus() {
   pitcherMenu.addEventListener('click', e => handler(e, true));
 }
 
+// 검색창 반응
 searchInput.addEventListener('input', () => {
   if (currentSort.column) renderRanking(currentSort.column);
 });
 
+// 초기화: players.json에서 fetch
 document.addEventListener('DOMContentLoaded', () => {
-  // playersData는 players.js에 정의되어 있어야 함
-  players = playersData;
-  loadRecentMvp();
-  renderRanking('타율'); // 초기값
-  initMenus();
+  fetch('https://alex4u-jun.github.io/<bs_record/players.json')  
+    .then(res => res.json())
+    .then(data => {
+      players = data;
+      loadRecentMvp();
+      renderRanking('타율'); // 초기 스탯
+      initMenus();
+    })
+    .catch(err => {
+      console.error('데이터 로딩 오류:', err);
+      rankingContent.innerHTML = '<p class="no-data">선수 데이터를 불러올 수 없습니다.</p>';
+    });
 });
 
+// 입력 페이지 이동 버튼
 goToInputBtn?.addEventListener('click', () => {
   window.location.href = 'index.html';
 });
