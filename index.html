@@ -362,6 +362,7 @@
     function init() {
       players = loadPlayers();
       renderPlayerList();
+      setupSearchAndEdit();
     }
 
     document.getElementById('addPlayerForm').addEventListener('submit', e => {
@@ -481,7 +482,59 @@
       reader.readAsText(file);
     });
 
+    // 🔍 추가된 투수-타자 선택 로직
+    function setupSearchAndEdit() {
+      const search = (inputId, containerId, type, editSectionId, nameDisplayId, statsContainerId) => {
+        const input = document.getElementById(inputId);
+        const container = document.getElementById(containerId);
+        input.addEventListener('input', () => {
+          const value = input.value.trim();
+          container.innerHTML = '';
+          players.filter(p => p.name.includes(value) && p.type === type).forEach(p => {
+            const div = document.createElement('div');
+            div.textContent = `${p.name} (${p.team})`;
+            div.addEventListener('click', () => {
+              document.getElementById(editSectionId).style.display = 'block';
+              document.getElementById(nameDisplayId).textContent = `${p.name} (${p.team})`;
+              const statsContainer = document.getElementById(statsContainerId);
+              statsContainer.innerHTML = '';
+              statsContainer.dataset.name = p.name;
+              statsContainer.dataset.type = p.type;
+              Object.entries(p.stats).forEach(([stat, val]) => {
+                const div = document.createElement('div');
+                div.innerHTML = `<label>${stat}</label><input type="number" value="${val}" />`;
+                statsContainer.appendChild(div);
+              });
+            });
+            container.appendChild(div);
+          });
+        });
+      };
+
+      search('pitcherSearch','pitcherSearchResults','투수','pitcherEditSection','pitcherNameDisplay','pitcherStatsContainer');
+      search('hitterSearch','hitterSearchResults','타자','hitterEditSection','hitterNameDisplay','hitterStatsContainer');
+
+      document.getElementById('saveDuelBtn').addEventListener('click', () => {
+        ['pitcherStatsContainer','hitterStatsContainer'].forEach(id => {
+          const container = document.getElementById(id);
+          const name = container.dataset.name;
+          const type = container.dataset.type;
+          const player = players.find(p => p.name === name && p.type === type);
+          if (!player) return;
+          const inputs = container.querySelectorAll('input');
+          inputs.forEach((input, i) => {
+            const statName = Object.keys(player.stats)[i];
+            player.stats[statName] = parseInt(input.value) || 0;
+          });
+        });
+        savePlayers(players);
+        renderPlayerList();
+        alert('기록이 저장되었습니다.');
+      });
+    }
+
     init();
   </script>
 </body>
 </html>
+
