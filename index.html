@@ -192,7 +192,7 @@
       margin-bottom: 12px;
     }
 
-    /* ==== 큰 화살표 스테퍼 ==== */
+    /* ==== 큰 화살표 스테퍼 (화살표로만 조정) ==== */
     .stat-row{
       display:flex; align-items:center; gap:12px; margin-bottom:10px;
     }
@@ -203,21 +203,16 @@
       display:flex; align-items:center; gap:10px;
     }
     .counter .big-btn{
-      display: flex;               /* 중앙정렬 */
-      justify-content: center;     /* 가로 중앙 */
-      align-items: center;         /* 세로 중앙 */
-      width:44px; height:44px;
-      font-size:26px; font-weight:800;
+      width:44px; height:44px; font-size:26px; font-weight:800;
       border:none; border-radius:10px; cursor:pointer;
-      background:#1a73e8; color:#fff;
-      box-shadow:0 2px 8px rgba(26,115,232,.25);
+      background:#1a73e8; color:#fff; box-shadow:0 2px 8px rgba(26,115,232,.25);
       user-select:none;
     }
     .counter .big-btn:active{ transform: translateY(1px); }
     .counter .val{
       width:90px; height:44px; text-align:center; font-size:1.1rem; font-weight:700;
       border:1.5px solid #cde0fe; border-radius:10px; background:#fff;
-      pointer-events:none;
+      pointer-events:none;           /* 마우스로 값 편집 못하게 */
     }
 
     .mvp-section {
@@ -594,5 +589,4 @@
   </script>
 </body>
 </html>
-
 
