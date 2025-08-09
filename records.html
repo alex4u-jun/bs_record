@@ -1,36 +1,92 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <title>선수 기록 조회 및 분야별 순위</title>
   <style>
-   body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 20px 30px;
-      background-color: #f9faff;
-      color: #333;
-      overflow-x: auto;
+    /* =======================
+       테마 변수 (라이트/다크)
+       ======================= */
+    :root{
+      --bg:#f9faff;
+      --text:#333;
+      --card:#ffffff;
+      --border:#dddddd;
+      --brand:#1a73e8;
+      --thead:#e8f0fe;
+      --theadText:#1a73e8;
+      --link:#1a73e8;
+
+      /* MVP 배너(라이트) */
+      --mvp-bg:#1b3764;
+      --mvp-star:#17438a;
+      --mvp-shadow:#0f2a55;
+      --mvp-text:#8a160e;
+      --mvp-glow1:#d64a4a;
+      --mvp-glow2:#bf1e1e;
+      --mvp-badge:#8a160e;
+      --mvp-badge-glow:#d64a4a;
+      --mvp-name:#8a160e;
+      --mvp-name-glow:#bf1e1e;
+      --mvp-info:#eeeeee;
     }
+    [data-theme="dark"]{
+      --bg:#0f172a;
+      --text:#e5e7eb;
+      --card:#0b1220;
+      --border:#22314d;
+      --brand:#86b7ff;
+      --thead:#13213a;
+      --theadText:#cfe2ff;
+      --link:#9ec5fe;
+
+      /* MVP 배너(다크) */
+      --mvp-bg:#0c1a33;
+      --mvp-star:#0f285e;
+      --mvp-shadow:#05152e;
+      --mvp-text:#ffb4a2;
+      --mvp-glow1:#ff7070;
+      --mvp-glow2:#ff4d4d;
+      --mvp-badge:#b23a3a;
+      --mvp-badge-glow:#ff7070;
+      --mvp-name:#ffd1c7;
+      --mvp-name-glow:#ff8e7a;
+      --mvp-info:#e5e7eb;
+    }
+
+    /* ============ 기본 레이아웃 ============ */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       max-width: 900px;
       margin: 40px auto;
       padding: 20px 30px;
-      background-color: #f9faff;
-      color: #333;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: auto;
     }
     h1 {
       font-weight: 700;
       font-size: 2rem;
-      margin-bottom: 20px;
-      color: #1a73e8;
+      margin-bottom: 10px;
+      color: var(--brand);
       text-align: center;
     }
+
+    /* 다크 모드 토글 버튼 */
+    #themeToggle{
+      float:right;
+      margin-top:-4px;
+      margin-bottom:10px;
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid var(--border);
+      background:var(--card);
+      color:var(--text);
+      cursor:pointer;
+    }
+
     button#goToInputBtn {
-      background-color: #1a73e8;
+      background-color: var(--brand);
       color: white;
       font-weight: 600;
       padding: 10px 18px;
@@ -42,14 +98,16 @@
       display: inline-block;
     }
     button#goToInputBtn:hover {
-      background-color: #155ab6;
+      filter: brightness(0.9);
     }
     #searchInput {
       width: 100%;
       padding: 10px;
       margin-bottom: 20px;
       border-radius: 6px;
-      border: 1.5px solid #ccc;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text);
       font-size: 1rem;
     }
     .container {
@@ -60,8 +118,8 @@
     }
     nav.menu {
       width: 180px;
-      background-color: white;
-      border: 1px solid #ddd;
+      background-color: var(--card);
+      border: 1px solid var(--border);
       border-radius: 8px;
       box-shadow: 0 2px 8px rgb(26 115 232 / 0.15);
       overflow-y: auto;
@@ -71,9 +129,9 @@
     nav.menu h2 {
       font-weight: 700;
       font-size: 1.2rem;
-      color: #1a73e8;
+      color: var(--brand);
       padding: 8px 16px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border);
       margin-bottom: 10px;
     }
     nav.menu ul {
@@ -87,20 +145,22 @@
       transition: background-color 0.3s ease, color 0.3s ease;
       font-weight: 600;
       font-size: 0.95rem;
+      border-radius: 4px;
+      margin: 2px 8px;
     }
     nav.menu li:hover {
-      background-color: #cde0fe;
-      color: #1a73e8;
+      background-color: rgba(134,183,255,0.2);
+      color: var(--brand);
     }
     nav.menu li.active {
-      background-color: #1a73e8;
+      background-color: var(--brand);
       color: white;
     }
     section.content {
       flex: 1 1 600px;
-      background-color: white;
+      background-color: var(--card);
       border-radius: 8px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
       box-shadow: 0 2px 8px rgb(26 115 232 / 0.15);
       padding: 20px;
       overflow-x: auto;
@@ -113,27 +173,29 @@
       min-width: 500px;
     }
     th, td {
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
       padding: 10px 12px;
       text-align: center;
       font-size: 0.95rem;
       white-space: nowrap;
+      background: transparent;
+      color: var(--text);
     }
     th {
-      background-color: #e8f0fe;
-      color: #1a73e8;
+      background-color: var(--thead);
+      color: var(--theadText);
       font-weight: 700;
       user-select: none;
     }
     p.no-data {
       font-size: 1.1rem;
-      color: #666;
+      color: #8892a6;
       text-align: center;
       margin-top: 40px;
     }
     /* 선수 이름 링크 스타일 */
     td.player-name {
-      color: #1a73e8;
+      color: var(--link);
       cursor: pointer;
       text-decoration: underline;
     }
@@ -144,14 +206,14 @@
       width: 600px;
       height: 140px;
       margin: 0 auto 20px auto;
-      background-color: #1b3764;
+      background-color: var(--mvp-bg);
       border-radius: 15px;
       box-shadow:
-        0 0 10px #123663,
+        0 0 10px var(--mvp-shadow),
         inset 0 0 20px #2e5ba6;
       display: flex;
       align-items: center;
-      padding: 0 30px 0 90px; /* 왼쪽 별 공간 위해 padding-left 넉넉히 */
+      padding: 0 30px 0 90px; /* 왼쪽 별 공간 */
       overflow: hidden;
       user-select: none;
     }
@@ -160,15 +222,15 @@
       position: absolute;
       left: 30px;
       font-size: 6rem;
-      color: #17438a;
+      color: var(--mvp-star);
       opacity: 0.3;
-      filter: drop-shadow(0 0 4px #0f2a55);
+      filter: drop-shadow(0 0 4px var(--mvp-shadow));
       animation: starGlow 3s infinite ease-in-out;
       z-index: 1;
       user-select: none;
     }
     @keyframes starGlow {
-      0%, 100% { opacity: 0.3; filter: drop-shadow(0 0 4px #0f2a55); }
+      0%, 100% { opacity: 0.3; filter: drop-shadow(0 0 4px var(--mvp-shadow)); }
       50% { opacity: 1; filter: drop-shadow(0 0 15px #4aa0ff); }
     }
 
@@ -176,12 +238,12 @@
     #mvpText {
       font-weight: 900;
       font-size: 4.5rem;
-      color: #8a160e;
+      color: var(--mvp-text);
       text-shadow:
-        0 0 12px #d64a4a,
-        0 0 25px #d64a4a,
-        0 0 30px #8a160e,
-        0 0 40px #8a160e;
+        0 0 12px var(--mvp-glow1),
+        0 0 25px var(--mvp-glow1),
+        0 0 30px var(--mvp-text),
+        0 0 40px var(--mvp-text);
       margin-right: 20px;
       animation: mvpPulse 2.5s ease-in-out infinite alternate;
       z-index: 10;
@@ -192,37 +254,37 @@
       0% {
         transform: scale(1) rotate(0deg);
         text-shadow:
-          0 0 12px #d64a4a,
-          0 0 25px #d64a4a,
-          0 0 30px #8a160e,
-          0 0 40px #8a160e;
-        color: #8a160e;
+          0 0 12px var(--mvp-glow1),
+          0 0 25px var(--mvp-glow1),
+          0 0 30px var(--mvp-text),
+          0 0 40px var(--mvp-text);
+        color: var(--mvp-text);
       }
       50% {
         transform: scale(1.1) rotate(-5deg);
         text-shadow:
-          0 0 20px #ff7070,
-          0 0 35px #ff7070,
-          0 0 50px #bf1e1e,
-          0 0 60px #bf1e1e;
-        color: #bf1e1e;
+          0 0 20px var(--mvp-glow1),
+          0 0 35px var(--mvp-glow1),
+          0 0 50px var(--mvp-glow2),
+          0 0 60px var(--mvp-glow2);
+        color: var(--mvp-glow2);
       }
       100% {
         transform: scale(1) rotate(0deg);
         text-shadow:
-          0 0 12px #d64a4a,
-          0 0 25px #d64a4a,
-          0 0 30px #8a160e,
-          0 0 40px #8a160e;
-        color: #8a160e;
+          0 0 12px var(--mvp-glow1),
+          0 0 25px var(--mvp-glow1),
+          0 0 30px var(--mvp-text),
+          0 0 40px var(--mvp-text);
+        color: var(--mvp-text);
       }
     }
 
-    /* SPORTS 글씨 스타일 */
+    /* SPORTS 배지 */
     #sportsBadge {
       font-size: 1.1rem;
       font-weight: 600;
-      background: #8a160e;
+      background: var(--mvp-badge);
       color: white;
       border-radius: 12px;
       padding: 3px 10px;
@@ -230,38 +292,25 @@
       vertical-align: middle;
       user-select: none;
       white-space: nowrap;
-      box-shadow:
-        0 0 10px #d64a4a;
+      box-shadow: 0 0 10px var(--mvp-badge-glow);
       animation: sportsGlow 2.5s ease-in-out infinite alternate;
       cursor: default;
     }
     @keyframes sportsGlow {
-      0% {
-        box-shadow:
-          0 0 10px #d64a4a;
-        background: #8a160e;
-      }
-      50% {
-        box-shadow:
-          0 0 20px #ff7070;
-        background: #bf1e1e;
-      }
-      100% {
-        box-shadow:
-          0 0 10px #d64a4a;
-        background: #8a160e;
-      }
+      0% { box-shadow: 0 0 10px var(--mvp-badge-glow); }
+      50% { box-shadow: 0 0 20px var(--mvp-badge-glow); }
+      100% { box-shadow: 0 0 10px var(--mvp-badge-glow); }
     }
 
-    /* 선수 이름 스타일 및 애니메이션 */
+    /* 선수 이름(배너) */
     #playerName {
       font-weight: 900;
       font-size: 3.3rem;
-      color: #8a160e;
+      color: var(--mvp-name);
       margin-left: 20px;
       text-shadow:
-        0 0 10px #d64a4a,
-        0 0 20px #bf1e1e;
+        0 0 10px var(--mvp-glow1),
+        0 0 20px var(--mvp-name-glow);
       animation: nameGlow 3s ease-in-out infinite alternate;
       user-select: none;
       white-space: nowrap;
@@ -269,31 +318,24 @@
     }
     @keyframes nameGlow {
       0% {
-        color: #8a160e;
-        text-shadow:
-          0 0 10px #d64a4a,
-          0 0 20px #bf1e1e;
+        color: var(--mvp-name);
+        text-shadow: 0 0 10px var(--mvp-glow1), 0 0 20px var(--mvp-name-glow);
       }
       50% {
-        color: #bf1e1e;
-        text-shadow:
-          0 0 20px #ff7070,
-          0 0 30px #d64a4a,
-          0 0 40px #bf1e1e;
+        color: var(--mvp-name-glow);
+        text-shadow: 0 0 20px var(--mvp-glow1), 0 0 30px var(--mvp-glow1), 0 0 40px var(--mvp-name-glow);
       }
       100% {
-        color: #8a160e;
-        text-shadow:
-          0 0 10px #d64a4a,
-          0 0 20px #bf1e1e;
+        color: var(--mvp-name);
+        text-shadow: 0 0 10px var(--mvp-glow1), 0 0 20px var(--mvp-name-glow);
       }
     }
 
-    /* 선수 정보 스타일 (팀/타자or투수) */
+    /* 배너의 선수 정보(팀/포지션) */
     #playerInfo {
       font-size: 1.2rem;
       font-weight: 600;
-      color: #eee;
+      color: var(--mvp-info);
       margin-left: 25px;
       user-select: none;
       text-shadow: 0 0 10px #222;
@@ -301,7 +343,7 @@
       align-self: flex-end;
     }
 
-    /* 나머지 섹션 스타일 유지 */
+    /* 기타 섹션(숨김 기본) */
     #mvpRankingSection, #teamStatsSection {
       background: #f0f4ff;
       padding: 15px 20px;
@@ -310,15 +352,20 @@
       box-shadow: 0 2px 8px rgb(26 115 232 / 0.15);
     }
     #mvpRankingSection h3, #teamStatsSection h3 {
-      color: #1a73e8;
+      color: var(--brand);
       margin-bottom: 15px;
       font-weight: 700;
     }
+
+    /* 순위 메달 */
+    .rank-cell{ font-weight:700; }
+    .rank-medal{ font-size:1.25rem; margin-right:6px; vertical-align:-2px; }
   </style>
 </head>
 <body>
 
   <h1>선수 기록 조회 및 분야별 순위</h1>
+  <button id="themeToggle" aria-label="Toggle Dark Mode">🌙 다크 모드</button>
 
   <div id="recentMvpSection">
     <div id="mvpText">
@@ -422,6 +469,7 @@
   const pitcherStatsForRanking = ['승리', '세이브', '홀드', '삼진', 'ERA', 'WHIP'];
   let currentSort = { column: null, asc: true };
 
+  /* 최근 MVP 배너 로드 */
   function loadRecentMvp() {
     const mvpData = localStorage.getItem('lastMvp');
     if (mvpData) {
@@ -432,43 +480,50 @@
     }
   }
 
+  /* 이름 검색 필터 */
   function filterByName(players, keyword) {
     if (!keyword) return players;
     const lower = keyword.toLowerCase();
     return players.filter(p => p.name.toLowerCase().includes(lower));
   }
 
-  function calculateAVG(p) {
-    const H = (p.stats['1루타']||0) + (p.stats['2루타']||0) + (p.stats['3루타']||0) + (p.stats['홈런']||0);
-    const AB = H + (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
-    return AB ? H / AB : 0;
+  /* ===== 타자/투수 지표 계산 ===== */
+  function calculateAB(p){
+    const H = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
+    return H + (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
+  }
+  function calculatePA(p){ // 타석 = AB + 볼넷 + 희생플라이
+    const AB = calculateAB(p);
+    const BB = p.stats['볼넷']||0;
+    const SF = p.stats['희생플라이']||0;
+    return AB + BB + SF;
   }
 
+  function calculateAVG(p) {
+    const H = (p.stats['1루타']||0) + (p.stats['2루타']||0) + (p.stats['3루타']||0) + (p.stats['홈런']||0);
+    const AB = calculateAB(p);
+    return AB ? H / AB : 0;
+  }
   function calculateOBP(p) {
     const H = (p.stats['1루타']||0) + (p.stats['2루타']||0) + (p.stats['3루타']||0) + (p.stats['홈런']||0);
     const BB = p.stats['볼넷']||0;
-    const AB = H + (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
+    const AB = calculateAB(p);
     const SF = p.stats['희생플라이']||0;
     const denom = AB + BB + SF;
     return denom ? (H + BB) / denom : 0;
   }
-
   function calculateSLG(p) {
+    const singles = (p.stats['1루타']||0);
     const doubles = p.stats['2루타']||0, triples = p.stats['3루타']||0, HR = p.stats['홈런']||0;
-    const AB = doubles + triples + HR + (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
-    const TB = doubles*2 + triples*3 + HR*4;
+    const AB = calculateAB(p);
+    const TB = singles + doubles*2 + triples*3 + HR*4;
     return AB ? TB / AB : 0;
   }
-
-  function calculateOPS(p) {
-    return calculateOBP(p) + calculateSLG(p);
-  }
-
+  function calculateOPS(p) { return calculateOBP(p) + calculateSLG(p); }
   function calculateERA(p) {
     const ER = p.stats['자책점']||0, IP = p.stats['이닝']||0;
     return IP ? (ER * 9) / IP : 0;
   }
-
   function calculateWHIP(p) {
     const BB = p.stats['볼넷']||0, H = p.stats['피안타']||0, IP = p.stats['이닝']||0;
     return IP ? (BB + H) / IP : 0;
@@ -495,6 +550,14 @@
     return val;
   }
 
+  /* 메달 아이콘 */
+  function getMedalIcon(index){
+    if(index===0) return '🥇';
+    if(index===1) return '🥈';
+    if(index===2) return '🥉';
+    return '';
+  }
+
   function createRankingTable(players, stat) {
     const table = document.createElement('table');
     const thead = document.createElement('thead');
@@ -518,10 +581,11 @@
     thead.appendChild(headerRow);
 
     players.forEach((p, i) => {
+      const medal = getMedalIcon(i);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${i+1}</td>
-        <td class="player-name" style="cursor:pointer;color:#1a73e8;text-decoration:underline">${p.name}</td>
+        <td class="rank-cell">${medal ? `<span class="rank-medal">${medal}</span>` : ''}${i+1}</td>
+        <td class="player-name" style="cursor:pointer;text-decoration:underline">${p.name}</td>
         <td>${getStatDisplay(p, stat)}</td>
       `;
       tr.querySelector('.player-name').onclick = () => {
@@ -538,12 +602,31 @@
   async function renderRanking(stat, asc = true) {
     rankingContent.innerHTML = '';
     let players = await loadPlayersFromJson();
+
+    // 타자/투수 필터
     players = (hitterStatsForRanking.includes(stat))
       ? players.filter(p => p.type === '타자')
       : players.filter(p => p.type === '투수');
+
+    // 검색
     const keyword = searchInput.value.trim();
     players = filterByName(players, keyword);
-    players.sort((a, b) => asc ? getStatValue(a, stat) - getStatValue(b, stat) : getStatValue(b, stat) - getStatValue(a, stat));
+
+    // 정렬 + (타율 동률 시 타석 많은 선수 우선)
+    players.sort((a, b) => {
+      const va = getStatValue(a, stat);
+      const vb = getStatValue(b, stat);
+
+      let primary = asc ? (va - vb) : (vb - va);
+
+      if (stat === '타율' && Math.abs(va - vb) < 1e-9) {
+        const paA = calculatePA(a);
+        const paB = calculatePA(b);
+        if (paA !== paB) primary = (paB - paA); // 타석 많은 선수 우선
+      }
+      return primary;
+    });
+
     rankingContent.appendChild(createRankingTable(players, stat));
   }
 
@@ -565,7 +648,7 @@
     mvpRankingTableBody.innerHTML = '';
     list.forEach((p, i) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i+1}</td><td class="player-name" style="cursor:pointer;color:#1a73e8;text-decoration:underline">${p.name}</td><td>${p.teams.join(', ')}</td><td>${p.mvpCount}</td>`;
+      tr.innerHTML = `<td>${i+1}</td><td class="player-name" style="cursor:pointer;text-decoration:underline">${p.name}</td><td>${p.teams.join(', ')}</td><td>${p.mvpCount}</td>`;
       tr.querySelector('.player-name').onclick = () => {
         window.location.href = `player_detail.html?name=${encodeURIComponent(p.name)}&type=${encodeURIComponent(p.types[0])}`;
       };
@@ -583,7 +666,7 @@
       };
       if (p.type === '타자') {
         const H = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
-        const AB = H + (p.stats['삼진']||0)+(p.stats['내야땅볼']||0)+(p.stats['플라이아웃']||0);
+        const AB = calculateAB(p);
         t.totalHits += H;
         t.totalAtBats += AB;
         t.totalRBI += p.stats['타점'] || 0;
@@ -614,6 +697,24 @@
     }
     teamStatsSection.style.display = 'block';
   }
+
+  /* 다크 모드 토글 (로컬 저장) */
+  (function(){
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('theme');
+    if(saved){
+      root.setAttribute('data-theme', saved);
+      if(saved==='dark') btn.textContent='☀️ 라이트 모드';
+    }
+    btn.addEventListener('click', ()=>{
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      const next = isDark ? '' : 'dark';
+      if(next) root.setAttribute('data-theme', next); else root.removeAttribute('data-theme');
+      localStorage.setItem('theme', next || '');
+      btn.textContent = next==='dark' ? '☀️ 라이트 모드' : '🌙 다크 모드';
+    });
+  })();
 
   document.addEventListener('DOMContentLoaded', async () => {
     loadRecentMvp();
@@ -660,6 +761,4 @@
 
 </body>
 </html>
-
-
 
