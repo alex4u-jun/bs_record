@@ -4,15 +4,6 @@
   <meta charset="UTF-8" />
   <title>야구 기록 입력</title>
   <style>
-     body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 20px 30px;
-      background-color: #f9faff;
-      color: #333;
-      overflow-x: auto;
-    }
     body {
       font-family: Arial, sans-serif;
       max-width: 900px;
@@ -42,10 +33,7 @@
       text-decoration: none;
       transition: background-color 0.3s ease;
     }
-
-    nav a:hover {
-      background-color: #155ab6;
-    }
+    nav a:hover { background-color: #155ab6; }
 
     form {
       display: flex;
@@ -64,7 +52,6 @@
       width: 180px;
       min-width: 150px;
     }
-
     input[type="text"]:focus, select:focus {
       border-color: #1a73e8;
       outline: none;
@@ -82,10 +69,7 @@
       transition: background-color 0.3s ease;
       white-space: nowrap;
     }
-
-    button:hover {
-      background-color: #155ab6;
-    }
+    button:hover { background-color: #155ab6; }
 
     .player-list > div {
       background-color: white;
@@ -97,7 +81,6 @@
       overflow-x: auto;
       max-width: 100%;
     }
-
     .player-list h3 {
       font-weight: 700;
       color: #1a73e8;
@@ -106,7 +89,6 @@
       justify-content: space-between;
       align-items: center;
     }
-
     .delete-btn {
       color: #e53935;
       font-size: 14px;
@@ -117,10 +99,7 @@
       border: none;
       cursor: pointer;
     }
-
-    .delete-btn:hover {
-      background-color: #e5393533;
-    }
+    .delete-btn:hover { background-color: #e5393533; }
 
     table {
       width: 100%;
@@ -128,7 +107,6 @@
       margin-top: 10px;
       min-width: 900px;
     }
-
     th, td {
       border: 1px solid #ddd;
       text-align: center;
@@ -137,17 +115,13 @@
       padding: 8px 6px;
       vertical-align: middle;
     }
-
     th {
       background-color: #e8f0fe;
       color: #1a73e8;
       font-weight: 600;
       user-select: none;
     }
-
-    td.buttons-cell {
-      padding: 4px 6px;
-    }
+    td.buttons-cell { padding: 4px 6px; }
 
     button.stat-btn {
       width: 24px;
@@ -163,10 +137,7 @@
       user-select: none;
       transition: background-color 0.3s ease;
     }
-
-    button.stat-btn:hover {
-      background-color: #cde0fe;
-    }
+    button.stat-btn:hover { background-color: #cde0fe; }
 
     .duel-section {
       background-color: white;
@@ -176,14 +147,12 @@
       box-shadow: 0 4px 10px rgb(26 115 232 / 0.1);
       overflow-x: auto;
     }
-
     .duel-section h2 {
       color: #1a73e8;
       font-weight: 700;
       margin-bottom: 20px;
       font-size: 1.5rem;
     }
-
     .duel-section h3 {
       margin-bottom: 12px;
       color: #3c4043;
@@ -198,7 +167,6 @@
       border: 1.5px solid #ccc;
       font-size: 1rem;
     }
-
     #pitcherSearchResults div, #hitterSearchResults div {
       padding: 6px 8px;
       margin-bottom: 6px;
@@ -207,7 +175,6 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-
     #pitcherSearchResults div:hover, #hitterSearchResults div:hover {
       background-color: #cde0fe;
     }
@@ -219,24 +186,33 @@
       border-radius: 8px;
       margin-top: 8px;
     }
-
     #pitcherNameDisplay, #hitterNameDisplay {
       font-weight: 700;
       color: #1a73e8;
       margin-bottom: 12px;
     }
 
-    #pitcherStatsContainer div, #hitterStatsContainer div {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+    /* ==== 큰 화살표 스테퍼 (화살표로만 조정) ==== */
+    .stat-row{
+      display:flex; align-items:center; gap:12px; margin-bottom:10px;
     }
-
-    #pitcherStatsContainer label, #hitterStatsContainer label {
-      min-width: 100px;
-      font-weight: 600;
-      color: #3c4043;
+    .stat-row label{
+      min-width:100px; font-weight:600; color:#3c4043;
+    }
+    .counter{
+      display:flex; align-items:center; gap:10px;
+    }
+    .counter .big-btn{
+      width:44px; height:44px; font-size:26px; font-weight:800;
+      border:none; border-radius:10px; cursor:pointer;
+      background:#1a73e8; color:#fff; box-shadow:0 2px 8px rgba(26,115,232,.25);
+      user-select:none;
+    }
+    .counter .big-btn:active{ transform: translateY(1px); }
+    .counter .val{
+      width:90px; height:44px; text-align:center; font-size:1.1rem; font-weight:700;
+      border:1.5px solid #cde0fe; border-radius:10px; background:#fff;
+      pointer-events:none;           /* 마우스로 값 편집 못하게 */
     }
 
     .mvp-section {
@@ -246,12 +222,7 @@
       border-radius: 8px;
       text-align: center;
     }
-
-    .mvp-section h2 {
-      color:#1a73e8;
-      margin-bottom: 12px;
-    }
-
+    .mvp-section h2 { color:#1a73e8; margin-bottom: 12px; }
     .mvp-section select {
       padding: 8px;
       border-radius: 6px;
@@ -259,7 +230,6 @@
       font-size: 1rem;
       min-width: 240px;
     }
-
     .mvp-section button {
       margin-left: 12px;
       padding: 8px 20px;
@@ -270,11 +240,7 @@
       cursor:pointer;
       font-weight: 600;
     }
-
-    .mvp-section button:hover {
-      background:#155ab6;
-    }
-
+    .mvp-section button:hover { background:#155ab6; }
     .mvp-message {
       margin-top: 10px;
       font-weight: 600;
@@ -283,11 +249,12 @@
   </style>
 </head>
 <body>
-    <h1>선수 기록 입력 및 관리</h1>
+  <h1>선수 기록 입력 및 관리</h1>
   <nav>
     <a href="records.html">선수 기록 조회 페이지로 이동</a>
   </nav>
 
+  <!-- 선수 추가 -->
   <form id="addPlayerForm">
     <input type="text" id="playerName" placeholder="선수 이름" required />
     <select id="playerType">
@@ -302,11 +269,14 @@
     <button type="submit">선수 추가</button>
   </form>
 
+  <!-- 등록 선수 목록 -->
   <div class="player-list" id="playerList"></div>
 
+  <!-- 투타 대결 기록 (스테퍼 UI) -->
   <div class="duel-section">
     <h2>투수-타자 대결 기록 입력</h2>
     <div style="display:flex; gap: 30px; flex-wrap: wrap;">
+      <!-- 투수 -->
       <div style="flex:1; min-width: 280px;">
         <h3>투수 선택 및 기록</h3>
         <input type="text" id="pitcherSearch" placeholder="투수 이름 검색" autocomplete="off" />
@@ -316,6 +286,7 @@
           <div id="pitcherStatsContainer"></div>
         </div>
       </div>
+      <!-- 타자 -->
       <div style="flex:1; min-width: 280px;">
         <h3>타자 선택 및 기록</h3>
         <input type="text" id="hitterSearch" placeholder="타자 이름 검색" autocomplete="off" />
@@ -329,6 +300,7 @@
     <button id="saveDuelBtn" style="margin-top: 20px;">대결 기록 저장</button>
   </div>
 
+  <!-- MVP / JSON -->
   <div class="mvp-section">
     <h2>MVP 선정</h2>
     <select id="mvpSelect">
@@ -336,8 +308,8 @@
     </select>
     <button id="selectMvpBtn">MVP 선정</button>
     <p id="mvpMessage" class="mvp-message"></p>
-    <button id="exportJsonBtn" style="margin-top: 12px; background: #34a853;">JSON 파일로 내보내기</button>
 
+    <button id="exportJsonBtn" style="margin-top: 12px; background: #34a853;">JSON 파일로 내보내기</button>
     <div style="margin-top:12px;">
       <input type="file" id="importJsonFile" accept="application/json" />
       <button id="importJsonBtn" style="margin-top: 8px; background: #fbbc05;">JSON 불러오기</button>
@@ -351,20 +323,23 @@
     const hitterStatsHeaders = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
     const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
 
+    /* ===== 저장/로드 ===== */
     function loadPlayers() {
       const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     }
-    function savePlayers(players) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+    function savePlayers(p) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
     }
 
+    /* ===== 초기화 ===== */
     function init() {
       players = loadPlayers();
       renderPlayerList();
       setupSearchAndEdit();
     }
 
+    /* ===== 선수 추가 폼 ===== */
     document.getElementById('addPlayerForm').addEventListener('submit', e => {
       e.preventDefault();
       const name = document.getElementById('playerName').value.trim();
@@ -373,13 +348,16 @@
       if (!name || !team) return alert('모든 값을 입력하세요.');
       if (players.some(p => p.name === name && p.type === type)) return alert('이미 등록된 선수입니다.');
 
-      const stats = (type === '타자') ? hitterStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {}) : pitcherStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {});
+      const stats = (type === '타자')
+        ? hitterStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {})
+        : pitcherStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {});
       players.push({ name, type, team, stats, mvpCount: 0 });
       savePlayers(players);
       renderPlayerList();
       e.target.reset();
     });
 
+    /* ===== 선수 리스트 렌더 및 버튼 동작 ===== */
     const playerListDiv = document.getElementById('playerList');
     playerListDiv.addEventListener('click', e => {
       const idx = parseInt(e.target.dataset.idx);
@@ -397,7 +375,7 @@
           if (newVal < 0) return;
           players[idx].mvpCount = newVal;
         } else {
-          const newVal = players[idx].stats[stat] + delta;
+          const newVal = (players[idx].stats[stat] || 0) + delta;
           if (newVal < 0) return;
           players[idx].stats[stat] = newVal;
         }
@@ -418,8 +396,17 @@
         let html = `<h3>${player.name} (${player.team} / ${player.type}) <button class="delete-btn" data-idx="${idx}">삭제</button></h3>`;
         const statsKeys = Object.keys(player.stats);
         html += '<table><thead><tr>' + statsKeys.map(stat => `<th>${stat}</th>`).join('') + '<th>MVP 횟수</th></tr></thead><tbody><tr>';
-        html += statsKeys.map(stat => `<td class="buttons-cell"><button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="1">▲</button><button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="-1">▼</button></td>`).join('');
-        html += `<td class="buttons-cell"><button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="1">▲</button><button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="-1">▼</button></td></tr><tr>`;
+        html += statsKeys.map(stat => `
+          <td class="buttons-cell">
+            <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="1">▲</button>
+            <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="-1">▼</button>
+          </td>`).join('');
+        html += `
+          <td class="buttons-cell">
+            <button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="1">▲</button>
+            <button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="-1">▼</button>
+          </td>
+        </tr><tr>`;
         html += statsKeys.map(stat => `<td>${player.stats[stat]}</td>`).join('');
         html += `<td>${player.mvpCount || 0}</td></tr></tbody></table>`;
         container.innerHTML = html;
@@ -428,114 +415,178 @@
       updateMvpSelect();
     }
 
+    /* ===== MVP Select ===== */
     function updateMvpSelect() {
       const mvpSelect = document.getElementById('mvpSelect');
       mvpSelect.innerHTML = '<option value="" disabled selected>선수 선택</option>';
-      players.forEach((p, idx) => {
-        const option = document.createElement('option');
-        option.value = idx;
-        option.textContent = `${p.name} (${p.team} / ${p.type})`;
-        mvpSelect.appendChild(option);
+      players.forEach((p, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${p.name} (${p.team} / ${p.type})`;
+        mvpSelect.appendChild(opt);
       });
     }
 
     document.getElementById('selectMvpBtn').addEventListener('click', () => {
-      const idx = document.getElementById('mvpSelect').value;
-      const mvpMessage = document.getElementById('mvpMessage');
-      if (!idx) return alert('MVP 선수를 선택하세요.');
+      const sel = document.getElementById('mvpSelect');
+      const idx = sel.value;
+      if (idx === '' || idx == null) return alert('선수를 선택하세요.');
       players[idx].mvpCount = (players[idx].mvpCount || 0) + 1;
-      localStorage.setItem('lastMvp', JSON.stringify({ ...players[idx], date: new Date().toISOString() }));
       savePlayers(players);
+      document.getElementById('mvpMessage').textContent =
+        `${players[idx].name} 선수를 MVP로 기록했습니다. (누적 ${players[idx].mvpCount})`;
+      localStorage.setItem('lastMvp', JSON.stringify({
+        name: players[idx].name, team: players[idx].team, type: players[idx].type
+      }));
       renderPlayerList();
-      mvpMessage.textContent = `${players[idx].name} 선수가 MVP로 선정되었습니다! (총 ${players[idx].mvpCount}회)`;
-      document.getElementById('mvpSelect').value = '';
     });
 
+    /* ===== JSON 내보내기/불러오기 ===== */
     document.getElementById('exportJsonBtn').addEventListener('click', () => {
-      const json = JSON.stringify(players, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(players, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'players_export.json';
+      a.href = url; a.download = 'players.json';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
 
-    document.getElementById('importJsonBtn').addEventListener('click', () => {
+    document.getElementById('importJsonBtn').addEventListener('click', async () => {
       const fileInput = document.getElementById('importJsonFile');
-      const file = fileInput.files[0];
-      if (!file) return alert('불러올 JSON 파일을 선택하세요.');
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (!Array.isArray(imported)) throw new Error('형식 오류');
-          players = imported;
-          savePlayers(players);
-          renderPlayerList();
-          alert('JSON 데이터를 성공적으로 불러왔습니다.');
-        } catch (err) {
-          alert('잘못된 JSON 파일입니다.');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    // 🔍 추가된 투수-타자 선택 로직
-    function setupSearchAndEdit() {
-      const search = (inputId, containerId, type, editSectionId, nameDisplayId, statsContainerId) => {
-        const input = document.getElementById(inputId);
-        const container = document.getElementById(containerId);
-        input.addEventListener('input', () => {
-          const value = input.value.trim();
-          container.innerHTML = '';
-          players.filter(p => p.name.includes(value) && p.type === type).forEach(p => {
-            const div = document.createElement('div');
-            div.textContent = `${p.name} (${p.team})`;
-            div.addEventListener('click', () => {
-              document.getElementById(editSectionId).style.display = 'block';
-              document.getElementById(nameDisplayId).textContent = `${p.name} (${p.team})`;
-              const statsContainer = document.getElementById(statsContainerId);
-              statsContainer.innerHTML = '';
-              statsContainer.dataset.name = p.name;
-              statsContainer.dataset.type = p.type;
-              Object.entries(p.stats).forEach(([stat, val]) => {
-                const div = document.createElement('div');
-                div.innerHTML = `<label>${stat}</label><input type="number" value="${val}" />`;
-                statsContainer.appendChild(div);
-              });
-            });
-            container.appendChild(div);
-          });
-        });
-      };
-
-      search('pitcherSearch','pitcherSearchResults','투수','pitcherEditSection','pitcherNameDisplay','pitcherStatsContainer');
-      search('hitterSearch','hitterSearchResults','타자','hitterEditSection','hitterNameDisplay','hitterStatsContainer');
-
-      document.getElementById('saveDuelBtn').addEventListener('click', () => {
-        ['pitcherStatsContainer','hitterStatsContainer'].forEach(id => {
-          const container = document.getElementById(id);
-          const name = container.dataset.name;
-          const type = container.dataset.type;
-          const player = players.find(p => p.name === name && p.type === type);
-          if (!player) return;
-          const inputs = container.querySelectorAll('input');
-          inputs.forEach((input, i) => {
-            const statName = Object.keys(player.stats)[i];
-            player.stats[statName] = parseInt(input.value) || 0;
-          });
-        });
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return alert('JSON 파일을 선택하세요.');
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) throw new Error('형식이 올바르지 않습니다.');
+        players = data;
         savePlayers(players);
         renderPlayerList();
-        alert('기록이 저장되었습니다.');
+        alert('불러오기가 완료되었습니다.');
+      } catch (e) {
+        alert('불러오기 실패: ' + e.message);
+      }
+    });
+
+    /* ===== 스테퍼 UI (투/타) ===== */
+    function addStepperRow(container, player, statKey){
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+
+      const label = document.createElement('label');
+      label.textContent = statKey;
+
+      const counter = document.createElement('div');
+      counter.className = 'counter';
+
+      const dec = document.createElement('button');
+      dec.className = 'big-btn'; dec.type = 'button'; dec.textContent = '−';
+
+      const val = document.createElement('input');
+      val.className = 'val';
+      val.type = 'number';
+      val.value = player.stats[statKey] || 0;
+      val.readOnly = true;
+      val.inputMode = 'none';
+
+      const inc = document.createElement('button');
+      inc.className = 'big-btn'; inc.type = 'button'; inc.textContent = '+';
+
+      dec.addEventListener('click', () => {
+        const curr = player.stats[statKey] || 0;
+        if (curr <= 0) return;
+        player.stats[statKey] = curr - 1;
+        val.value = player.stats[statKey];
+        savePlayers(players);
       });
+      inc.addEventListener('click', () => {
+        const curr = player.stats[statKey] || 0;
+        player.stats[statKey] = curr + 1;
+        val.value = player.stats[statKey];
+        savePlayers(players);
+      });
+
+      counter.appendChild(dec);
+      counter.appendChild(val);
+      counter.appendChild(inc);
+
+      row.appendChild(label);
+      row.appendChild(counter);
+      container.appendChild(row);
     }
 
+    function renderEditor(containerEl, nameDisplayEl, player, headers){
+      nameDisplayEl.textContent = `${player.name} (${player.team})`;
+      containerEl.innerHTML = '';
+      headers.forEach(h => addStepperRow(containerEl, player, h));
+    }
+
+    function setupSearchAndEdit(){
+      const pitcherInput = document.getElementById('pitcherSearch');
+      const hitterInput  = document.getElementById('hitterSearch');
+      const pitcherResults = document.getElementById('pitcherSearchResults');
+      const hitterResults  = document.getElementById('hitterSearchResults');
+
+      const pitcherEdit = document.getElementById('pitcherEditSection');
+      const hitterEdit  = document.getElementById('hitterEditSection');
+      const pitcherNameDisplay = document.getElementById('pitcherNameDisplay');
+      const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
+      const pitcherStatsContainer = document.getElementById('pitcherStatsContainer');
+      const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
+
+      function renderResultList(inputEl, resultsEl, type){
+        const keyword = inputEl.value.trim().toLowerCase();
+        const list = players.filter(p => p.type === type && p.name.toLowerCase().includes(keyword));
+        resultsEl.innerHTML = list.map(p =>
+          `<div data-name="${p.name}" data-type="${p.type}">${p.name} (${p.team})</div>`
+        ).join('');
+        resultsEl.style.display = list.length ? 'block' : 'none';
+      }
+
+      pitcherInput.addEventListener('input', () => renderResultList(pitcherInput, pitcherResults, '투수'));
+      hitterInput .addEventListener('input', () => renderResultList(hitterInput , hitterResults , '타자'));
+
+      // 선택 시: 편집 렌더 + 검색목록 숨김
+      pitcherResults.addEventListener('click', (e) => {
+        if (e.target.matches('div[data-name]')) {
+          const name = e.target.getAttribute('data-name');
+          const player = players.find(p => p.name === name && p.type === '투수');
+          if (!player) return;
+          pitcherEdit.style.display = 'block';
+          renderEditor(pitcherStatsContainer, pitcherNameDisplay, player, pitcherStatsHeaders);
+          pitcherResults.style.display = 'none';       // 목록 숨김
+          // pitcherInput.value = '';                  // 필요 시 검색어 자동 지우기
+        }
+      });
+      hitterResults.addEventListener('click', (e) => {
+        if (e.target.matches('div[data-name]')) {
+          const name = e.target.getAttribute('data-name');
+          const player = players.find(p => p.name === name && p.type === '타자');
+          if (!player) return;
+          hitterEdit.style.display = 'block';
+          renderEditor(hitterStatsContainer, hitterNameDisplay, player, hitterStatsHeaders);
+          hitterResults.style.display = 'none';        // 목록 숨김
+          // hitterInput.value = '';
+        }
+      });
+
+      // 다시 포커스 시 검색 목록 재표시
+      pitcherInput.addEventListener('focus', () => { if (pitcherInput.value) pitcherResults.style.display = 'block'; });
+      hitterInput .addEventListener('focus', () => { if (hitterInput.value)  hitterResults.style.display  = 'block'; });
+    }
+
+    // 대결 저장(현 버전은 로컬 players에 그대로 반영되므로 별도 추가 없음)
+    document.getElementById('saveDuelBtn').addEventListener('click', () => {
+      savePlayers(players);
+      alert('대결 기록이 저장되었습니다.');
+      renderPlayerList();
+    });
+
+    // 시작
     init();
   </script>
 </body>
 </html>
-
 
