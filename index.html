@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 900px;
+      max-width: 1100px;
       margin: 40px auto;
       padding: 20px 30px;
       background-color: #f9faff;
@@ -150,7 +150,7 @@
     .duel-section h2 {
       color: #1a73e8;
       font-weight: 700;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       font-size: 1.5rem;
     }
     .duel-section h3 {
@@ -167,7 +167,8 @@
       border: 1.5px solid #ccc;
       font-size: 1rem;
     }
-    #pitcherSearchResults div, #hitterSearchResults div {
+    #pitcherSearchResults div, #hitterSearchResults div,
+    #lineupSearchResults div {
       padding: 6px 8px;
       margin-bottom: 6px;
       background-color: #f1f3f4;
@@ -175,7 +176,8 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-    #pitcherSearchResults div:hover, #hitterSearchResults div:hover {
+    #pitcherSearchResults div:hover, #hitterSearchResults div:hover,
+    #lineupSearchResults div:hover {
       background-color: #cde0fe;
     }
 
@@ -192,7 +194,6 @@
       margin-bottom: 12px;
     }
 
-    /* ==== 큰 화살표 스테퍼 (화살표로만 조정) ==== */
     .stat-row{
       display:flex; align-items:center; gap:12px; margin-bottom:10px;
     }
@@ -212,7 +213,7 @@
     .counter .val{
       width:90px; height:44px; text-align:center; font-size:1.1rem; font-weight:700;
       border:1.5px solid #cde0fe; border-radius:10px; background:#fff;
-      pointer-events:none;           /* 마우스로 값 편집 못하게 */
+      pointer-events:none;
     }
 
     .mvp-section {
@@ -246,6 +247,34 @@
       font-weight: 600;
       color: #155ab6;
     }
+
+    /* 라인업 UI */
+    .lineup-box{
+      background:#f9fbff; border:1px solid #cde0fe; border-radius:8px; padding:12px 14px; margin-top:8px;
+    }
+    .lineup-list{
+      list-style:none; padding:0; margin:0;
+    }
+    .lineup-item{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:8px; padding:8px 10px; margin-bottom:6px; background:#fff; border:1px solid #e6ecff; border-radius:6px;
+    }
+    .lineup-controls button{
+      padding:4px 8px; font-size:12px; margin-left:4px; background:#e8f0fe; color:#1a73e8; border:1px solid #cde0fe;
+    }
+    .badge{
+      display:inline-block; padding:2px 8px; font-size:12px; border-radius:999px; background:#e8f0fe; color:#1a73e8; margin-left:6px;
+    }
+
+    .duel-toolbar{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px;
+    }
+    .ghost{
+      opacity:0.6;
+    }
+    .muted{
+      color:#5f6368; font-size:0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -272,9 +301,13 @@
   <!-- 등록 선수 목록 -->
   <div class="player-list" id="playerList"></div>
 
-  <!-- 투타 대결 기록 (스테퍼 UI) -->
+  <!-- 투타 대결 기록 (스테퍼 + 라인업 + 히스토리) -->
   <div class="duel-section">
     <h2>투수-타자 대결 기록 입력</h2>
+
+    <!-- 히스토리 상태 -->
+    <div class="muted" id="historyStatus" style="margin-bottom:8px;">히스토리: 0건</div>
+
     <div style="display:flex; gap: 30px; flex-wrap: wrap;">
       <!-- 투수 -->
       <div style="flex:1; min-width: 280px;">
@@ -286,18 +319,38 @@
           <div id="pitcherStatsContainer"></div>
         </div>
       </div>
-      <!-- 타자 -->
-      <div style="flex:1; min-width: 280px;">
+
+      <!-- 타자 (개별 검색 + 라인업) -->
+      <div style="flex:1; min-width: 320px;">
         <h3>타자 선택 및 기록</h3>
-        <input type="text" id="hitterSearch" placeholder="타자 이름 검색" autocomplete="off" />
+        <input type="text" id="hitterSearch" placeholder="(단독 선택용) 타자 이름 검색" autocomplete="off" />
         <div id="hitterSearchResults"></div>
         <div id="hitterEditSection" style="display:none; margin-top:10px;">
           <div id="hitterNameDisplay"></div>
           <div id="hitterStatsContainer"></div>
         </div>
+
+        <!-- 라인업 관리 -->
+        <div class="lineup-box" style="margin-top:14px;">
+          <h3 style="margin-top:0;">라인업</h3>
+          <input type="text" id="lineupSearch" placeholder="라인업에 넣을 타자 검색" autocomplete="off" />
+          <div id="lineupSearchResults"></div>
+          <ul id="lineupList" class="lineup-list"></ul>
+          <div class="duel-toolbar">
+            <button type="button" id="startLineupBtn">라인업 시작</button>
+            <button type="button" id="prevBatterBtn">◀ 이전 타자 보기</button>
+            <button type="button" id="nextBatterBtn">다음 타자 ▶</button>
+            <span class="muted" id="currentBatterBadge"></span>
+          </div>
+        </div>
       </div>
     </div>
-    <button id="saveDuelBtn" style="margin-top: 20px;">대결 기록 저장</button>
+
+    <div class="duel-toolbar">
+      <button id="saveDuelBtn" style="margin-top: 6px;">대결 기록 저장(자동 다음 타자)</button>
+      <button id="historyForwardBtn" style="background:#6c63ff;">히스토리 다음 보기▶</button>
+      <button id="historyBackBtn" style="background:#6c63ff;">◀히스토리 이전 보기</button>
+    </div>
   </div>
 
   <!-- MVP / JSON -->
@@ -318,7 +371,16 @@
 
   <script>
     const STORAGE_KEY = 'playersData';
+    const LINEUP_KEY  = 'lineupData';
+    const HISTORY_KEY = 'duelHistory';
+
     let players = [];
+    let lineup = []; // [{name, team}] 순서대로
+    let currentLineupIndex = 0;
+
+    // 히스토리: 각 타석의 (pitcherName, hitterName, timestamp)
+    let duelHistory = [];
+    let historyPtr = -1; // -1이면 마지막(최신) 위치 이후(즉, 새 기록 모드)
 
     const hitterStatsHeaders = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
     const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
@@ -331,12 +393,34 @@
     function savePlayers(p) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
     }
+    function loadLineup(){
+      const data = localStorage.getItem(LINEUP_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    function saveLineup(){
+      localStorage.setItem(LINEUP_KEY, JSON.stringify(lineup));
+    }
+    function loadHistory(){
+      const data = localStorage.getItem(HISTORY_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    function saveHistory(){
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(duelHistory));
+    }
 
     /* ===== 초기화 ===== */
     function init() {
       players = loadPlayers();
+      lineup  = loadLineup();
+      duelHistory = loadHistory();
       renderPlayerList();
       setupSearchAndEdit();
+      renderLineup();
+      updateMvpSelect();
+      updateHistoryStatus();
+      if(lineup.length>0){
+        updateCurrentBatterBadge();
+      }
     }
 
     /* ===== 선수 추가 폼 ===== */
@@ -354,6 +438,7 @@
       players.push({ name, type, team, stats, mvpCount: 0 });
       savePlayers(players);
       renderPlayerList();
+      updateMvpSelect();
       e.target.reset();
     });
 
@@ -363,9 +448,15 @@
       const idx = parseInt(e.target.dataset.idx);
       if (e.target.classList.contains('delete-btn')) {
         if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
+          // 라인업에서도 제거
+          lineup = lineup.filter(x => !(x.name===players[idx].name && x.team===players[idx].team));
+          saveLineup();
+          renderLineup();
+
           players.splice(idx, 1);
           savePlayers(players);
           renderPlayerList();
+          updateMvpSelect();
         }
       } else if (e.target.classList.contains('stat-btn')) {
         const stat = e.target.dataset.stat;
@@ -388,7 +479,6 @@
       playerListDiv.innerHTML = '';
       if (players.length === 0) {
         playerListDiv.textContent = '등록된 선수가 없습니다.';
-        updateMvpSelect();
         return;
       }
       players.forEach((player, idx) => {
@@ -412,7 +502,6 @@
         container.innerHTML = html;
         playerListDiv.appendChild(container);
       });
-      updateMvpSelect();
     }
 
     /* ===== MVP Select ===== */
@@ -464,13 +553,14 @@
         players = data;
         savePlayers(players);
         renderPlayerList();
+        updateMvpSelect();
         alert('불러오기가 완료되었습니다.');
       } catch (e) {
         alert('불러오기 실패: ' + e.message);
       }
     });
 
-    /* ===== 스테퍼 UI (투/타) ===== */
+    /* ===== 스테퍼 UI (공용) ===== */
     function addStepperRow(container, player, statKey){
       const row = document.createElement('div');
       row.className = 'stat-row';
@@ -523,6 +613,11 @@
       headers.forEach(h => addStepperRow(containerEl, player, h));
     }
 
+    /* ===== 투수/타자 선택 & 편집 ===== */
+    function findPlayerByNameType(name, type){
+      return players.find(p => p.name === name && p.type === type);
+    }
+
     function setupSearchAndEdit(){
       const pitcherInput = document.getElementById('pitcherSearch');
       const hitterInput  = document.getElementById('hitterSearch');
@@ -548,37 +643,235 @@
       pitcherInput.addEventListener('input', () => renderResultList(pitcherInput, pitcherResults, '투수'));
       hitterInput .addEventListener('input', () => renderResultList(hitterInput , hitterResults , '타자'));
 
-      // 선택 시: 편집 렌더 + 검색목록 숨김
+      // 선택 시 편집 렌더
       pitcherResults.addEventListener('click', (e) => {
         if (e.target.matches('div[data-name]')) {
           const name = e.target.getAttribute('data-name');
-          const player = players.find(p => p.name === name && p.type === '투수');
+          const player = findPlayerByNameType(name, '투수');
           if (!player) return;
           pitcherEdit.style.display = 'block';
           renderEditor(pitcherStatsContainer, pitcherNameDisplay, player, pitcherStatsHeaders);
-          pitcherResults.style.display = 'none';       // 목록 숨김
-          // pitcherInput.value = '';                  // 필요 시 검색어 자동 지우기
+          pitcherResults.style.display = 'none';
         }
       });
       hitterResults.addEventListener('click', (e) => {
         if (e.target.matches('div[data-name]')) {
           const name = e.target.getAttribute('data-name');
-          const player = players.find(p => p.name === name && p.type === '타자');
+          const player = findPlayerByNameType(name, '타자');
           if (!player) return;
           hitterEdit.style.display = 'block';
           renderEditor(hitterStatsContainer, hitterNameDisplay, player, hitterStatsHeaders);
-          hitterResults.style.display = 'none';        // 목록 숨김
-          // hitterInput.value = '';
+          hitterResults.style.display = 'none';
+          // 라인업 포인터도 해당 타자로 이동(있으면)
+          const li = lineup.findIndex(x => x.name===player.name && x.team===player.team);
+          if(li>=0){ currentLineupIndex = li; updateCurrentBatterBadge(); }
         }
       });
 
-      // 다시 포커스 시 검색 목록 재표시
+      // 포커스 시 목록 재표시
       pitcherInput.addEventListener('focus', () => { if (pitcherInput.value) pitcherResults.style.display = 'block'; });
       hitterInput .addEventListener('focus', () => { if (hitterInput.value)  hitterResults.style.display  = 'block'; });
     }
 
-    // 대결 저장(현 버전은 로컬 players에 그대로 반영되므로 별도 추가 없음)
+    /* ===== 라인업 관리 ===== */
+    const lineupListEl = document.getElementById('lineupList');
+    const lineupSearch = document.getElementById('lineupSearch');
+    const lineupSearchResults = document.getElementById('lineupSearchResults');
+    const currentBatterBadge = document.getElementById('currentBatterBadge');
+
+    lineupSearch.addEventListener('input', () => {
+      const kw = lineupSearch.value.trim().toLowerCase();
+      const list = players.filter(p => p.type==='타자' && p.name.toLowerCase().includes(kw));
+      lineupSearchResults.innerHTML = list.map(p=>`<div data-name="${p.name}" data-team="${p.team}">추가: ${p.name} (${p.team})</div>`).join('');
+      lineupSearchResults.style.display = list.length?'block':'none';
+    });
+
+    lineupSearchResults.addEventListener('click', (e)=>{
+      if(e.target.matches('div[data-name]')){
+        const name = e.target.getAttribute('data-name');
+        const team = e.target.getAttribute('data-team');
+        if(lineup.some(x=>x.name===name && x.team===team)){
+          alert('이미 라인업에 있는 선수입니다.');
+          return;
+        }
+        lineup.push({name, team});
+        saveLineup();
+        renderLineup();
+        lineupSearchResults.style.display='none';
+        lineupSearch.value='';
+      }
+    });
+
+    function renderLineup(){
+      lineupListEl.innerHTML = '';
+      lineup.forEach((p, idx)=>{
+        const li = document.createElement('li');
+        li.className='lineup-item';
+        li.innerHTML = `
+          <div>
+            ${idx+1}. ${p.name} (${p.team})
+            ${idx===currentLineupIndex?'<span class="badge">현재 타자</span>':''}
+          </div>
+          <div class="lineup-controls">
+            <button type="button" data-idx="${idx}" data-act="up">▲</button>
+            <button type="button" data-idx="${idx}" data-act="down">▼</button>
+            <button type="button" data-idx="${idx}" data-act="remove">🗑️</button>
+          </div>
+        `;
+        lineupListEl.appendChild(li);
+      });
+      updateCurrentBatterBadge();
+    }
+
+    lineupListEl.addEventListener('click', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      const act = e.target.dataset.act;
+      if(Number.isNaN(idx) || !act) return;
+
+      if(act==='remove'){
+        lineup.splice(idx,1);
+        if(currentLineupIndex>=lineup.length) currentLineupIndex = Math.max(0, lineup.length-1);
+      }else if(act==='up' && idx>0){
+        [lineup[idx-1], lineup[idx]] = [lineup[idx], lineup[idx-1]];
+        if(currentLineupIndex===idx) currentLineupIndex=idx-1;
+        else if(currentLineupIndex===idx-1) currentLineupIndex=idx;
+      }else if(act==='down' && idx<lineup.length-1){
+        [lineup[idx+1], lineup[idx]] = [lineup[idx], lineup[idx+1]];
+        if(currentLineupIndex===idx) currentLineupIndex=idx+1;
+        else if(currentLineupIndex===idx+1) currentLineupIndex=idx;
+      }
+      saveLineup();
+      renderLineup();
+    });
+
+    document.getElementById('startLineupBtn').addEventListener('click', ()=>{
+      if(lineup.length===0) return alert('라인업을 먼저 구성하세요.');
+      currentLineupIndex = 0;
+      saveLineup();
+      renderLineup();
+      loadHitterFromLineup();
+    });
+
+    document.getElementById('nextBatterBtn').addEventListener('click', ()=>{
+      goNextBatterOnly();
+    });
+
+    document.getElementById('prevBatterBtn').addEventListener('click', ()=>{
+      if(duelHistory.length===0) return alert('이전 타자 기록이 없습니다.');
+      // 히스토리 뒤에서 한 칸 이동(= 마지막 기록으로부터)
+      if(historyPtr===-1) historyPtr = duelHistory.length; // 최신 다음을 가리켰다면
+      historyPtr = Math.max(0, historyPtr-1);
+      const rec = duelHistory[historyPtr];
+      loadDuelFromHistory(rec);
+      updateHistoryStatus();
+    });
+
+    function goNextBatterOnly(){
+      if(lineup.length===0) return alert('라인업이 비어 있습니다.');
+      currentLineupIndex = (currentLineupIndex + 1) % lineup.length;
+      saveLineup();
+      renderLineup();
+      loadHitterFromLineup();
+    }
+
+    function loadHitterFromLineup(){
+      const entry = lineup[currentLineupIndex];
+      if(!entry) return;
+      const hitter = findPlayerByNameType(entry.name, '타자');
+      const hitterEdit  = document.getElementById('hitterEditSection');
+      const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
+      const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
+      if(hitter){
+        hitterEdit.style.display='block';
+        renderEditor(hitterStatsContainer, hitterNameDisplay, hitter, hitterStatsHeaders);
+      }
+    }
+
+    function updateCurrentBatterBadge(){
+      const msg = (lineup.length===0) ? '라인업 없음'
+        : `현재 타자: ${lineup[currentLineupIndex]?.name || '-'} (${lineup[currentLineupIndex]?.team || '-'}) | 타순 ${currentLineupIndex+1}/${lineup.length}`;
+      currentBatterBadge.textContent = msg;
+      renderLineup(); // 배지 갱신 반영
+    }
+
+    /* ===== 히스토리 ===== */
+    const historyStatusEl = document.getElementById('historyStatus');
+    function updateHistoryStatus(){
+      const total = duelHistory.length;
+      const ptrText = (historyPtr===-1) ? '최신 위치' : `${historyPtr+1}/${total}`;
+      historyStatusEl.textContent = `히스토리: ${total}건 · 포인터: ${ptrText}`;
+    }
+
+    function loadDuelFromHistory(rec){
+      // 투수 복원
+      const pitcher = findPlayerByNameType(rec.pitcherName, '투수');
+      if(pitcher){
+        const pitcherEdit = document.getElementById('pitcherEditSection');
+        const pitcherNameDisplay = document.getElementById('pitcherNameDisplay');
+        const pitcherStatsContainer = document.getElementById('pitcherStatsContainer');
+        pitcherEdit.style.display='block';
+        renderEditor(pitcherStatsContainer, pitcherNameDisplay, pitcher, pitcherStatsHeaders);
+        document.getElementById('pitcherSearch').value = pitcher.name;
+      }
+      // 타자 복원
+      const hitter = findPlayerByNameType(rec.hitterName, '타자');
+      if(hitter){
+        const hitterEdit  = document.getElementById('hitterEditSection');
+        const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
+        const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
+        hitterEdit.style.display='block';
+        renderEditor(hitterStatsContainer, hitterNameDisplay, hitter, hitterStatsHeaders);
+        document.getElementById('hitterSearch').value = hitter.name;
+
+        // 라인업 포인터도 해당 타자로 맞춤(있다면)
+        const li = lineup.findIndex(x => x.name===hitter.name && x.team===hitter.team);
+        if(li>=0){ currentLineupIndex = li; updateCurrentBatterBadge(); }
+      }
+    }
+
+    document.getElementById('historyBackBtn').addEventListener('click', ()=>{
+      if(duelHistory.length===0) return alert('히스토리 없음');
+      if(historyPtr===-1) historyPtr = duelHistory.length-1;
+      else historyPtr = Math.max(0, historyPtr-1);
+      loadDuelFromHistory(duelHistory[historyPtr]);
+      updateHistoryStatus();
+    });
+
+    document.getElementById('historyForwardBtn').addEventListener('click', ()=>{
+      if(duelHistory.length===0) return alert('히스토리 없음');
+      if(historyPtr===-1) return; // 이미 최신
+      historyPtr++;
+      if(historyPtr>=duelHistory.length){ historyPtr=-1; updateHistoryStatus(); return; }
+      loadDuelFromHistory(duelHistory[historyPtr]);
+      updateHistoryStatus();
+    });
+
+    /* ===== 대결 저장 ===== */
     document.getElementById('saveDuelBtn').addEventListener('click', () => {
+      // 현재 선택된 투수/타자 이름 가져오기
+      const currPitcherName = document.getElementById('pitcherNameDisplay').textContent.split(' (')[0] || '';
+      let currHitterName = document.getElementById('hitterNameDisplay').textContent.split(' (')[0] || '';
+
+      // 라인업이 있을 경우 라인업 현재 타자를 우선으로 사용
+      if(lineup.length>0){
+        currHitterName = lineup[currentLineupIndex]?.name || currHitterName;
+      }
+
+      if(!currPitcherName) return alert('투수를 선택하세요.');
+      if(!currHitterName) return alert('타자를 선택하거나 라인업을 시작하세요.');
+
+      duelHistory.push({
+        pitcherName: currPitcherName,
+        hitterName: currHitterName,
+        ts: Date.now()
+      });
+      saveHistory();
+      historyPtr = -1; // 저장하면 최신으로 이동
+      updateHistoryStatus();
+
+      // 저장 즉시 다음 타자로 자동 진행
+      goNextBatterOnly();
+
       savePlayers(players);
       alert('대결 기록이 저장되었습니다.');
       renderPlayerList();
