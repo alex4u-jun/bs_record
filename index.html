@@ -190,29 +190,31 @@
     #pitcherNameDisplay, #hitterNameDisplay {
       font-weight: 700;
       color: #1a73e8;
+      margin-bottom: 10px;
     }
 
-    .stat-row{
-      display:flex; align-items:center; gap:12px; margin-bottom:10px;
+    /* ===== 선택형/숫자형 입력 UI (증분 입력) ===== */
+    .group-title{ font-weight:700; color:#3c4043; margin-top:8px; margin-bottom:6px; }
+    .chip-group{
+      display:flex; flex-wrap:wrap; gap:8px; background:#eef4ff; border:1px solid #cde0fe; border-radius:10px; padding:10px;
     }
-    .stat-row label{
-      min-width:100px; font-weight:600; color:#3c4043;
+    .chip{
+      padding:8px 12px; border-radius:8px; border:1px solid #bcd0ff; background:#fff; cursor:pointer; user-select:none;
+      transition: all .15s ease;
     }
-    .counter{
-      display:flex; align-items:center; gap:10px;
+    .chip.selected{
+      background:#1a73e8; color:#fff; border-color:#1a73e8;
+      box-shadow:0 2px 8px rgba(26,115,232,.25);
     }
-    .counter .big-btn{
-      width:44px; height:44px; font-size:26px; font-weight:800;
-      border:none; border-radius:10px; cursor:pointer;
-      background:#1a73e8; color:#fff; box-shadow:0 2px 8px rgba(26,115,232,.25);
-      user-select:none;
+
+    .num-row{
+      display:flex; align-items:center; gap:10px; margin:8px 0;
     }
-    .counter .big-btn:active{ transform: translateY(1px); }
-    .counter .val{
-      width:90px; height:44px; text-align:center; font-size:1.1rem; font-weight:700;
-      border:1.5px solid #cde0fe; border-radius:10px; background:#fff;
-      pointer-events:none;
+    .num-row label{ min-width:80px; font-weight:600; color:#3c4043; }
+    .num-row input{
+      width:110px; padding:8px 10px; border:1.5px solid #cde0fe; border-radius:8px; font-size:1rem; background:#fff;
     }
+    .muted{ color:#5f6368; font-size:0.92rem; }
 
     /* 라인업 용지 */
     .lineup-card{
@@ -270,8 +272,6 @@
       font-weight: 600;
       color: #155ab6;
     }
-
-    .muted{ color:#5f6368; font-size:0.92rem; }
   </style>
 </head>
 <body>
@@ -320,7 +320,7 @@
       </div>
     </div>
 
-    <!-- 투수/타자 편집 그리드 -->
+    <!-- 투수/타자 입력 그리드 -->
     <div class="duel-grid">
       <!-- 투수 -->
       <div style="flex:1; min-width: 300px;">
@@ -329,9 +329,31 @@
         <div id="pitcherSearchResults"></div>
         <div id="pitcherEditSection" style="display:none; margin-top:10px;">
           <div id="pitcherNameDisplay"></div>
-          <div id="pitcherStatsContainer"></div>
+
+          <!-- 증분 숫자 입력 -->
+          <div class="num-row">
+            <label for="pitcherPitchCountInput">투구수(+)</label>
+            <input id="pitcherPitchCountInput" type="number" min="0" step="1" value="0" />
+          </div>
+          <div class="num-row">
+            <label for="pitcherInningsInput">이닝(+)</label>
+            <input id="pitcherInningsInput" type="number" min="0" step="0.1" value="0" />
+          </div>
+
+          <!-- 단일 선택 그룹 1: 삼진/볼넷/피안타/피홈런/사구 (택1, 다시 누르면 해제) -->
+          <div class="group-title">이번 결과(투수) – 택1</div>
+          <div id="pitcherGroup1" class="chip-group" role="group" aria-label="Pitcher Result Group 1">
+            <!-- chips will be injected -->
+          </div>
+
+          <!-- 단일 선택 그룹 2: 승리/패배/홀드/세이브 (택1, 다시 누르면 해제) -->
+          <div class="group-title">승패/세이브 – 택1</div>
+          <div id="pitcherGroup2" class="chip-group" role="group" aria-label="Pitcher Result Group 2">
+            <!-- chips will be injected -->
+          </div>
         </div>
       </div>
+
       <!-- 타자 -->
       <div style="flex:1; min-width: 300px;">
         <h3>타자 선택 및 기록</h3>
@@ -339,14 +361,25 @@
         <div id="hitterSearchResults"></div>
         <div id="hitterEditSection" style="display:none; margin-top:10px;">
           <div id="hitterNameDisplay"></div>
-          <div id="hitterStatsContainer"></div>
+
+          <!-- 단일 선택 그룹(타자): 1B/2B/3B/HR/삼진/볼넷/SF/내야땅볼/플라이아웃 -->
+          <div class="group-title">이번 결과(타자) – 택1</div>
+          <div id="hitterGroup" class="chip-group" role="group" aria-label="Hitter Result Group">
+            <!-- chips will be injected -->
+          </div>
+
+          <!-- 숫자 입력: 타점 -->
+          <div class="num-row">
+            <label for="hitterRBIInput">타점(+)</label>
+            <input id="hitterRBIInput" type="number" min="0" step="1" value="0" />
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 하단 툴바 -->
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-      <button id="saveDuelBtn">대결 기록 저장(자동 다음 타자)</button>
+      <button id="saveDuelBtn">대결 기록 저장(증분 반영 & 자동 다음 타자)</button>
       <button id="historyBackBtn" style="background:#6c63ff;">◀ 히스토리 이전 보기</button>
       <button id="historyForwardBtn" style="background:#6c63ff;">히스토리 다음 보기 ▶</button>
       <button id="endHalfBtn" style="margin-left:auto; background:#e67e22;">이닝 종료(공수 전환)</button>
@@ -355,7 +388,7 @@
     </div>
   </section>
 
-  <!-- 등록 선수 목록 -->
+  <!-- 등록 선수 목록 (누적치 현황) -->
   <section class="section">
     <h2 style="margin-top:0;">등록 선수 목록</h2>
     <div class="player-list" id="playerList"></div>
@@ -487,32 +520,28 @@
       if(!p) return false;
       const pitcherEdit=document.getElementById('pitcherEditSection');
       const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
-      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
       pitcherEdit.style.display='block';
-      renderEditor(pitcherStatsContainer,pitcherNameDisplay,p,pitcherStatsHeaders);
+      renderPitcherEditor(p);
+      pitcherNameDisplay.textContent = `${p.name} (${p.team})`;
       document.getElementById('pitcherSearch').value = p.name;
       return true;
     }
     function ensureAutoPitcher(){
-      // 1) 수비팀 라인업에 투수가 지정돼 있으면 그것을 우선 사용
       if(applyPitcherFromDefenseLineup()) return;
-      // 2) 없으면 수비팀 투수 중 첫 번째 자동 선택
       const cand = players.find(p=>p.type==='투수' && p.team===defenseTeam);
       if(!cand) return;
       const pitcherEdit=document.getElementById('pitcherEditSection');
       const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
-      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
       pitcherEdit.style.display='block';
-      renderEditor(pitcherStatsContainer,pitcherNameDisplay,cand,pitcherStatsHeaders);
+      renderPitcherEditor(cand);
+      pitcherNameDisplay.textContent = `${cand.name} (${cand.team})`;
       document.getElementById('pitcherSearch').value = cand.name;
     }
     function syncSearchInputs(){
-      // 타자: 현재 타자
       const curBatter = getCurrentBatter();
       if(curBatter){
         document.getElementById('hitterSearch').value = curBatter;
       }
-      // 투수: 현재 선택/자동 반영된 투수명
       const pName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
       if(pName){
         document.getElementById('pitcherSearch').value = pName;
@@ -547,7 +576,6 @@
       const idx = parseInt(e.target.dataset.idx);
       if (e.target.classList.contains('delete-btn')) {
         if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
-          // 양 팀 라인업에서 제거/초기화
           ['Leaders','CSIA'].forEach(t=>{
             const obj = getLineup(t);
             obj.batters = obj.batters.filter(n=>n!==players[idx].name);
@@ -647,25 +675,66 @@
       }catch(e){ alert('불러오기 실패: '+e.message); }
     });
 
-    /* ==== 편집 스테퍼 공용 ==== */
-    function addStepperRow(container, player, statKey){
-      const row=document.createElement('div'); row.className='stat-row';
-      const label=document.createElement('label'); label.textContent=statKey;
-      const counter=document.createElement('div'); counter.className='counter';
-      const dec=document.createElement('button'); dec.className='big-btn'; dec.type='button'; dec.textContent='−';
-      const val=document.createElement('input'); val.className='val'; val.type='number'; val.value=player.stats[statKey]||0; val.readOnly=true;
-      const inc=document.createElement('button'); inc.className='big-btn'; inc.type='button'; inc.textContent='+';
-      dec.addEventListener('click',()=>{ const c=player.stats[statKey]||0; if(c<=0) return; player.stats[statKey]=c-1; val.value=player.stats[statKey]; savePlayers(players); });
-      inc.addEventListener('click',()=>{ const c=player.stats[statKey]||0; player.stats[statKey]=c+1; val.value=player.stats[statKey]; savePlayers(players); });
-      counter.append(dec,val,inc); row.append(label,counter); container.appendChild(row);
+    /* ==== 단일 선택(칩) 유틸 ==== */
+    function renderChipGroup(rootEl, options){
+      rootEl.innerHTML = '';
+      options.forEach(opt=>{
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = opt;
+        chip.dataset.value = opt;
+        chip.addEventListener('click', ()=>{
+          if(chip.classList.contains('selected')){
+            chip.classList.remove('selected'); // 토글 해제 허용
+            return;
+          }
+          // 같은 그룹의 다른 선택 해제
+          [...rootEl.querySelectorAll('.chip')].forEach(c=>c.classList.remove('selected'));
+          chip.classList.add('selected');
+        });
+        rootEl.appendChild(chip);
+      });
     }
-    function renderEditor(containerEl, nameDisplayEl, player, headers){
-      nameDisplayEl.textContent = `${player.name} (${player.team})`;
-      containerEl.innerHTML=''; headers.forEach(h=>addStepperRow(containerEl, player, h));
+    function getSelectedValue(rootEl){
+      const sel = rootEl.querySelector('.chip.selected');
+      return sel ? sel.dataset.value : '';
+    }
+    function clearChipSelection(rootEl){
+      rootEl && [...rootEl.querySelectorAll('.chip')].forEach(c=>c.classList.remove('selected'));
     }
 
-    /* ==== 투수/타자 검색 편집 ==== */
+    /* ==== 투수/타자 에디터 렌더 ==== */
     function findPlayer(name,type){ return players.find(p=>p.name===name && p.type===type); }
+
+    function renderPitcherEditor(pitcher){
+      const nameDisplay = document.getElementById('pitcherNameDisplay');
+      nameDisplay.textContent = `${pitcher.name} (${pitcher.team})`;
+
+      // 그룹1: 삼진/볼넷/피안타/피홈런/사구
+      renderChipGroup(document.getElementById('pitcherGroup1'),
+        ['삼진','볼넷','피안타','피홈런','사구']
+      );
+      // 그룹2: 승리/패배/홀드/세이브
+      renderChipGroup(document.getElementById('pitcherGroup2'),
+        ['승리','패배','홀드','세이브']
+      );
+
+      // 숫자 입력 초기화
+      document.getElementById('pitcherPitchCountInput').value = 0;
+      document.getElementById('pitcherInningsInput').value = 0;
+    }
+
+    function renderHitterEditor(hitter){
+      const nameDisplay = document.getElementById('hitterNameDisplay');
+      nameDisplay.textContent = `${hitter.name} (${hitter.team})`;
+
+      // 타자 단일 선택 그룹
+      renderChipGroup(document.getElementById('hitterGroup'),
+        ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃']
+      );
+      // 숫자 입력 초기화
+      document.getElementById('hitterRBIInput').value = 0;
+    }
 
     function setupSearchAndEdit(){
       const pitcherInput=document.getElementById('pitcherSearch');
@@ -675,10 +744,6 @@
 
       const pitcherEdit=document.getElementById('pitcherEditSection');
       const hitterEdit =document.getElementById('hitterEditSection');
-      const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
-      const hitterNameDisplay =document.getElementById('hitterNameDisplay');
-      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
-      const hitterStatsContainer =document.getElementById('hitterStatsContainer');
 
       function renderList(inputEl, resultsEl, type){
         const kw=inputEl.value.trim().toLowerCase();
@@ -693,9 +758,10 @@
         if(e.target.matches('div[data-name]')){
           const name=e.target.getAttribute('data-name');
           const p=findPlayer(name,'투수'); if(!p) return;
-          pitcherEdit.style.display='block'; renderEditor(pitcherStatsContainer,pitcherNameDisplay,p,pitcherStatsHeaders);
+          pitcherEdit.style.display='block';
+          renderPitcherEditor(p);
           pitcherResults.style.display='none';
-          // 사용자가 수동으로 투수를 바꾸면 (해당 팀이 현재 수비팀이면) 라인업의 투수도 동기화
+          // 수동 변경 시 수비팀 라인업 투수 동기화
           if(p.team===defenseTeam){
             const obj=getLineup(p.team); obj.pitcher=p.name; saveLineup(p.team,obj);
           }
@@ -706,9 +772,9 @@
         if(e.target.matches('div[data-name]')){
           const name=e.target.getAttribute('data-name');
           const h=findPlayer(name,'타자'); if(!h) return;
-          hitterEdit.style.display='block'; renderEditor(hitterStatsContainer,hitterNameDisplay,h,hitterStatsHeaders);
+          hitterEdit.style.display='block';
+          renderHitterEditor(h);
           hitterResults.style.display='none';
-          // 라인업 포인터를 해당 타자로 이동(있으면)
           const lu=currentBatters(); const i=lu.indexOf(name);
           if(i>=0){ setCurrentIdx(i); updateCurrentBatterInfo(); }
           syncSearchInputs();
@@ -767,7 +833,6 @@
         const o=getLineup(team);
         o.pitcher = e.target.value.trim();
         saveLineup(team, o);
-        // 현재 수비팀 라인업의 투수가 바뀌면 즉시 투수 패널에 반영
         if(team===defenseTeam){ applyPitcherFromDefenseLineup(); syncSearchInputs(); }
       });
     }
@@ -790,13 +855,11 @@
       saveLineupIdx(offenseTeam, 0);
       updateCurrentBatterInfo();
 
-      // 타자 패널/검색칸 동기화
       const hitter = findPlayer(lu[0],'타자');
       if(hitter){
         const ec=document.getElementById('hitterEditSection');
-        const nd=document.getElementById('hitterNameDisplay');
-        const sc=document.getElementById('hitterStatsContainer');
-        ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+        ec.style.display='block';
+        renderHitterEditor(hitter);
       }
       ensureAutoPitcher();
       syncSearchInputs();
@@ -811,9 +874,8 @@
       const hitter=findPlayer(lu[idx],'타자');
       if(hitter){
         const ec=document.getElementById('hitterEditSection');
-        const nd=document.getElementById('hitterNameDisplay');
-        const sc=document.getElementById('hitterStatsContainer');
-        ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+        ec.style.display='block';
+        renderHitterEditor(hitter);
       }
       ensureAutoPitcher();
       syncSearchInputs();
@@ -835,8 +897,9 @@
       if(p){
         const ec=document.getElementById('pitcherEditSection');
         const nd=document.getElementById('pitcherNameDisplay');
-        const sc=document.getElementById('pitcherStatsContainer');
-        ec.style.display='block'; renderEditor(sc,nd,p,pitcherStatsHeaders);
+        ec.style.display='block';
+        renderPitcherEditor(p);
+        nd.textContent = `${p.name} (${p.team})`;
         document.getElementById('pitcherSearch').value=p.name;
       }
       // 타자
@@ -844,10 +907,10 @@
       if(h){
         const ec=document.getElementById('hitterEditSection');
         const nd=document.getElementById('hitterNameDisplay');
-        const sc=document.getElementById('hitterStatsContainer');
-        ec.style.display='block'; renderEditor(sc,nd,h,hitterStatsHeaders);
+        ec.style.display='block';
+        renderHitterEditor(h);
+        nd.textContent = `${h.name} (${h.team})`;
         document.getElementById('hitterSearch').value=h.name;
-        // 라인업 포인터 동기화(해당 이닝의 공격팀에서만)
         if(rec.offenseTeam===offenseTeam){
           const lu=currentBatters();
           const li=lu.indexOf(h.name);
@@ -876,10 +939,11 @@
 
     /* ==== 대결 저장 ==== */
     document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
-      // 투수는 수비팀 라인업의 투수를 최우선 사용(없으면 편집 패널의 이름)
+      // 투수명: 수비팀 라인업 우선
       const defLu = getLineup(defenseTeam);
       let pitcherName = defLu.pitcher || (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
 
+      // 타자명: 라인업 포인터 우선
       let hitterName = (document.getElementById('hitterNameDisplay').textContent||'').split(' (')[0].trim();
       const lu=currentBatters();
       if(lu.length>0){
@@ -889,6 +953,35 @@
       if(!pitcherName) return alert('투수를 선택하거나 라인업에 투수를 입력하세요.');
       if(!hitterName) return alert('타자를 선택하거나 라인업을 시작하세요.');
 
+      const pitcher = findPlayer(pitcherName,'투수');
+      const hitter  = findPlayer(hitterName ,'타자');
+      if(!pitcher || !hitter) return alert('선수 데이터 오류입니다.');
+
+      // ===== 증분 값 읽기 (투수) =====
+      const pitchCountDelta = Math.max(0, parseFloat(document.getElementById('pitcherPitchCountInput').value)||0);
+      const inningsDelta    = Math.max(0, parseFloat(document.getElementById('pitcherInningsInput').value)||0);
+      const g1 = getSelectedValue(document.getElementById('pitcherGroup1')); // '삼진','볼넷','피안타','피홈런','사구'
+      const g2 = getSelectedValue(document.getElementById('pitcherGroup2')); // '승리','패배','홀드','세이브'
+
+      // ===== 증분 값 읽기 (타자) =====
+      const hitterEvt = getSelectedValue(document.getElementById('hitterGroup')); // 9가지 중 택1
+      const rbiDelta  = Math.max(0, parseInt(document.getElementById('hitterRBIInput').value)||0);
+
+      // ===== DB 누적 반영 (+=) =====
+      // 투수 숫자형
+      pitcher.stats['투구수'] = (pitcher.stats['투구수']||0) + pitchCountDelta;
+      pitcher.stats['이닝']   = (pitcher.stats['이닝']  ||0) + inningsDelta;
+      // 투수 단일선택 그룹1/2
+      if(g1){ pitcher.stats[g1] = (pitcher.stats[g1]||0) + 1; }
+      if(g2){ pitcher.stats[g2] = (pitcher.stats[g2]||0) + 1; }
+
+      // 타자 단일선택 + 타점
+      if(hitterEvt){ hitter.stats[hitterEvt] = (hitter.stats[hitterEvt]||0) + 1; }
+      if(rbiDelta){ hitter.stats['타점'] = (hitter.stats['타점']||0) + rbiDelta; }
+
+      savePlayers(players);
+
+      // 히스토리(선택 요약 없이 기본 맥락만 저장)
       duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now()});
       saveHistory();
       historyPtr=-1; updateHistoryBadge();
@@ -897,19 +990,25 @@
       if(lu.length>0){
         setCurrentIdx((currentIdx()+1)%lu.length);
         updateCurrentBatterInfo();
-        const hitter=findPlayer(getCurrentBatter(),'타자');
-        if(hitter){
+        const nextH=findPlayer(getCurrentBatter(),'타자');
+        if(nextH){
           const ec=document.getElementById('hitterEditSection');
-          const nd=document.getElementById('hitterNameDisplay');
-          const sc=document.getElementById('hitterStatsContainer');
-          ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+          ec.style.display='block';
+          renderHitterEditor(nextH);
         }
       }
       ensureAutoPitcher();
       syncSearchInputs();
 
-      savePlayers(players);
-      alert('대결 기록이 저장되었습니다.');
+      // 입력 UI 초기화
+      document.getElementById('pitcherPitchCountInput').value = 0;
+      document.getElementById('pitcherInningsInput').value = 0;
+      clearChipSelection(document.getElementById('pitcherGroup1'));
+      clearChipSelection(document.getElementById('pitcherGroup2'));
+      clearChipSelection(document.getElementById('hitterGroup'));
+      document.getElementById('hitterRBIInput').value = 0;
+
+      alert('대결 기록이 저장되었습니다. (증분 반영 완료)');
       renderPlayerList();
     });
 
@@ -950,3 +1049,4 @@
   </script>
 </body>
 </html>
+
