@@ -380,7 +380,7 @@
   <script>
     /* ==== Storage Keys ==== */
     const STORAGE_KEY = 'playersData';
-    const LINEUP_KEY_BY_TEAM = (team)=>`lineup_${team}`;
+    const LINEUP_KEY_BY_TEAM = (team)=>`lineup_${team}`; // {batters:[], pitcher:""}  (구버전 배열도 자동 호환)
     const LINEUP_IDX_KEY_BY_TEAM = (team)=>`lineup_idx_${team}`;
     const HISTORY_KEY = 'duelHistory_v2';
     const GAME_STATE_KEY = 'gameState_v2';
@@ -404,8 +404,19 @@
     const savePlayers = (p)=>localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
     const loadPlayers = ()=>JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-    const saveLineup = (team, arr)=>localStorage.setItem(LINEUP_KEY_BY_TEAM(team), JSON.stringify(arr||[]));
-    const loadLineup = (team)=>JSON.parse(localStorage.getItem(LINEUP_KEY_BY_TEAM(team) )|| '[]');
+    // 라인업 저장을 새 포맷으로: {batters:[], pitcher:""}  (구버전 배열도 읽어줌)
+    function getLineup(team){
+      const raw = localStorage.getItem(LINEUP_KEY_BY_TEAM(team));
+      if(!raw) return {batters: [], pitcher: ''};
+      try{
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) return {batters: parsed, pitcher: ''}; // 구버전 호환
+        if(parsed && typeof parsed==='object')
+          return {batters: parsed.batters || [], pitcher: parsed.pitcher || ''};
+      }catch(e){}
+      return {batters: [], pitcher: ''};
+    }
+    function saveLineup(team, obj){ localStorage.setItem(LINEUP_KEY_BY_TEAM(team), JSON.stringify(obj)); }
 
     const saveLineupIdx = (team, idx)=>localStorage.setItem(LINEUP_IDX_KEY_BY_TEAM(team), String(idx||0));
     const loadLineupIdx = (team)=>parseInt(localStorage.getItem(LINEUP_IDX_KEY_BY_TEAM(team))||'0',10);
@@ -437,8 +448,19 @@
       updateHistoryBadge();
       updateCurrentBatterInfo();
       attachLineupTabEvents();
-      ensureAutoPitcher();   // 초기에도 수비팀 투수 자동선택 시도
+      ensureAutoPitcher();   // 초기에도 수비팀 투수 자동선택 시도 (라인업에 있으면 우선)
       syncSearchInputs();    // 검색칸 동기화
+    }
+
+    /* ==== helpers (현재 공격팀) ==== */
+    const currentBatters = ()=>getLineup(offenseTeam).batters;
+    const currentIdx = ()=>loadLineupIdx(offenseTeam);
+    const setCurrentIdx = (v)=>saveLineupIdx(offenseTeam, v);
+    function getCurrentBatter(){
+      const lu = currentBatters();
+      if(lu.length===0) return null;
+      const idx = currentIdx()%lu.length;
+      return lu[idx]||null;
     }
 
     /* ==== UI Utils ==== */
@@ -451,40 +473,30 @@
       const ptrText = (historyPtr===-1) ? '최신' : `${historyPtr+1}/${total}`;
       document.getElementById('historyBadge').textContent = `히스토리 ${total}건 · 포인터 ${ptrText}`;
     }
-    function currentLineup(){ return loadLineup(offenseTeam); }
-    function currentIdx(){ return loadLineupIdx(offenseTeam); }
-    function setCurrentIdx(v){ saveLineupIdx(offenseTeam, v); }
-
-    function getCurrentBatter(){
-      const lu = currentLineup();
-      if(lu.length===0) return null;
-      const idx = currentIdx()%lu.length;
-      return lu[idx]||null;
-    }
     function updateCurrentBatterInfo(){
       const b = getCurrentBatter();
       document.getElementById('currentBatterInfo').textContent =
         b ? `현재 타자: ${b}` : '현재 타자: (라인업 비어 있음)';
     }
 
-    /* === 새로 추가된 핵심: 투수/타자 검색칸 자동 동기화 === */
-    function syncSearchInputs(){
-      // 타자: 현재 타자
-      const curBatter = getCurrentBatter();
-      if(curBatter){
-        document.getElementById('hitterSearch').value = curBatter;
-      }
-      // 투수: 이미 선택돼 있으면 그대로, 없으면 자동 선택된 투수 이름 넣기
-      const pName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
-      if(pName){
-        document.getElementById('pitcherSearch').value = pName;
-      }
+    /* === 투/타 검색칸 자동 동기화 & 수비팀 투수 자동 반영 === */
+    function applyPitcherFromDefenseLineup(){
+      const { pitcher } = getLineup(defenseTeam);
+      if(!pitcher) return false;
+      const p = players.find(x=>x.type==='투수' && x.name===pitcher && x.team===defenseTeam);
+      if(!p) return false;
+      const pitcherEdit=document.getElementById('pitcherEditSection');
+      const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
+      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
+      pitcherEdit.style.display='block';
+      renderEditor(pitcherStatsContainer,pitcherNameDisplay,p,pitcherStatsHeaders);
+      document.getElementById('pitcherSearch').value = p.name;
+      return true;
     }
-
     function ensureAutoPitcher(){
-      // 편집 패널에 투수 미선택이면, 수비팀 투수 중 첫 번째를 자동 선택
-      const pSelected = (document.getElementById('pitcherNameDisplay').textContent||'').trim();
-      if(pSelected) return;
+      // 1) 수비팀 라인업에 투수가 지정돼 있으면 그것을 우선 사용
+      if(applyPitcherFromDefenseLineup()) return;
+      // 2) 없으면 수비팀 투수 중 첫 번째 자동 선택
       const cand = players.find(p=>p.type==='투수' && p.team===defenseTeam);
       if(!cand) return;
       const pitcherEdit=document.getElementById('pitcherEditSection');
@@ -492,7 +504,19 @@
       const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
       pitcherEdit.style.display='block';
       renderEditor(pitcherStatsContainer,pitcherNameDisplay,cand,pitcherStatsHeaders);
-      document.getElementById('pitcherSearch').value = cand.name; // 검색칸 자동 채움
+      document.getElementById('pitcherSearch').value = cand.name;
+    }
+    function syncSearchInputs(){
+      // 타자: 현재 타자
+      const curBatter = getCurrentBatter();
+      if(curBatter){
+        document.getElementById('hitterSearch').value = curBatter;
+      }
+      // 투수: 현재 선택/자동 반영된 투수명
+      const pName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
+      if(pName){
+        document.getElementById('pitcherSearch').value = pName;
+      }
     }
 
     /* ==== 선수 추가 & 목록 ==== */
@@ -515,7 +539,7 @@
       updateMvpSelect();
       buildLineupEditor();
       e.target.reset();
-      ensureAutoPitcher(); // 새 투수 추가되었을 수도 있으니 한번 더
+      ensureAutoPitcher();
       syncSearchInputs();
     });
 
@@ -523,9 +547,12 @@
       const idx = parseInt(e.target.dataset.idx);
       if (e.target.classList.contains('delete-btn')) {
         if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
+          // 양 팀 라인업에서 제거/초기화
           ['Leaders','CSIA'].forEach(t=>{
-            const lu = loadLineup(t).filter(n=>n!==players[idx].name);
-            saveLineup(t, lu);
+            const obj = getLineup(t);
+            obj.batters = obj.batters.filter(n=>n!==players[idx].name);
+            if(obj.pitcher === players[idx].name) obj.pitcher = '';
+            saveLineup(t, obj);
           });
           players.splice(idx,1);
           savePlayers(players);
@@ -668,6 +695,10 @@
           const p=findPlayer(name,'투수'); if(!p) return;
           pitcherEdit.style.display='block'; renderEditor(pitcherStatsContainer,pitcherNameDisplay,p,pitcherStatsHeaders);
           pitcherResults.style.display='none';
+          // 사용자가 수동으로 투수를 바꾸면 (해당 팀이 현재 수비팀이면) 라인업의 투수도 동기화
+          if(p.team===defenseTeam){
+            const obj=getLineup(p.team); obj.pitcher=p.name; saveLineup(p.team,obj);
+          }
           syncSearchInputs();
         }
       });
@@ -678,7 +709,7 @@
           hitterEdit.style.display='block'; renderEditor(hitterStatsContainer,hitterNameDisplay,h,hitterStatsHeaders);
           hitterResults.style.display='none';
           // 라인업 포인터를 해당 타자로 이동(있으면)
-          const lu=currentLineup(); const i=lu.indexOf(name);
+          const lu=currentBatters(); const i=lu.indexOf(name);
           if(i>=0){ setCurrentIdx(i); updateCurrentBatterInfo(); }
           syncSearchInputs();
         }
@@ -689,23 +720,32 @@
     function buildLineupEditor(){
       const root=document.getElementById('lineupEditor');
       const team = activeLineupTeam;
-      const lineup = loadLineup(team);
+      const obj = getLineup(team);        // {batters, pitcher}
       const batters = players.filter(p=>p.type==='타자' && p.team===team).map(p=>p.name);
+      const pitchers = players.filter(p=>p.type==='투수' && p.team===team).map(p=>p.name);
 
-      const dlId = `dl_${team}`;
-      const dl = `<datalist id="${dlId}">${batters.map(n=>`<option value="${n}">`).join('')}</datalist>`;
+      const dlB = `dl_b_${team}`;
+      const dlP = `dl_p_${team}`;
+      const dls = `
+        <datalist id="${dlB}">${batters.map(n=>`<option value="${n}">`).join('')}</datalist>
+        <datalist id="${dlP}">${pitchers.map(n=>`<option value="${n}">`).join('')}</datalist>
+      `;
 
       let html = `
-        ${dl}
+        ${dls}
         <table class="lineup-table">
           <thead><tr><th style="width:60px;">타순</th><th>성명</th></tr></thead>
           <tbody>
             ${Array.from({length:9}).map((_,i)=>`
               <tr>
                 <td>${i+1}</td>
-                <td><input list="${dlId}" data-idx="${i}" class="lu-input" placeholder="이름 입력" value="${lineup[i]||''}"></td>
+                <td><input list="${dlB}" data-idx="${i}" class="lu-input" placeholder="이름 입력" value="${obj.batters[i]||''}"></td>
               </tr>
             `).join('')}
+            <tr>
+              <th>P</th>
+              <td><input list="${dlP}" class="lu-pitcher" placeholder="투수 이름" value="${obj.pitcher||''}"></td>
+            </tr>
           </tbody>
         </table>
       `;
@@ -713,14 +753,22 @@
 
       root.querySelectorAll('.lu-input').forEach(inp=>{
         inp.addEventListener('change',()=>{
-          const arr=loadLineup(team);
+          const o=getLineup(team);
           const idx=parseInt(inp.dataset.idx,10);
-          arr[idx]=inp.value.trim();
-          if(!arr[idx]) arr.splice(idx,1);
-          saveLineup(team, arr);
+          o.batters[idx]=inp.value.trim();
+          if(!o.batters[idx]) o.batters.splice(idx,1);
+          saveLineup(team, o);
           updateCurrentBatterInfo();
           syncSearchInputs();
         });
+      });
+
+      root.querySelector('.lu-pitcher').addEventListener('change', (e)=>{
+        const o=getLineup(team);
+        o.pitcher = e.target.value.trim();
+        saveLineup(team, o);
+        // 현재 수비팀 라인업의 투수가 바뀌면 즉시 투수 패널에 반영
+        if(team===defenseTeam){ applyPitcherFromDefenseLineup(); syncSearchInputs(); }
       });
     }
 
@@ -735,8 +783,9 @@
       });
     }
 
+    // 라인업 진행 컨트롤
     document.getElementById('startLineupBtn').addEventListener('click', ()=>{
-      const lu=currentLineup();
+      const lu=currentBatters();
       if(lu.length===0) return alert('현재 공격 팀의 라인업을 먼저 입력하세요.');
       saveLineupIdx(offenseTeam, 0);
       updateCurrentBatterInfo();
@@ -754,7 +803,7 @@
     });
 
     document.getElementById('nextBatterBtn').addEventListener('click', ()=>{
-      const lu=currentLineup();
+      const lu=currentBatters();
       if(lu.length===0) return alert('라인업이 비어 있습니다.');
       const idx=(currentIdx()+1)%lu.length;
       setCurrentIdx(idx);
@@ -800,7 +849,7 @@
         document.getElementById('hitterSearch').value=h.name;
         // 라인업 포인터 동기화(해당 이닝의 공격팀에서만)
         if(rec.offenseTeam===offenseTeam){
-          const lu=currentLineup();
+          const lu=currentBatters();
           const li=lu.indexOf(h.name);
           if(li>=0){ setCurrentIdx(li); updateCurrentBatterInfo(); }
         }
@@ -827,14 +876,17 @@
 
     /* ==== 대결 저장 ==== */
     document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
-      const pitcherName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
+      // 투수는 수비팀 라인업의 투수를 최우선 사용(없으면 편집 패널의 이름)
+      const defLu = getLineup(defenseTeam);
+      let pitcherName = defLu.pitcher || (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
+
       let hitterName = (document.getElementById('hitterNameDisplay').textContent||'').split(' (')[0].trim();
-      const lu=currentLineup();
+      const lu=currentBatters();
       if(lu.length>0){
         const idx=currentIdx()%lu.length;
         hitterName = lu[idx] || hitterName;
       }
-      if(!pitcherName) return alert('투수를 선택하세요.');
+      if(!pitcherName) return alert('투수를 선택하거나 라인업에 투수를 입력하세요.');
       if(!hitterName) return alert('타자를 선택하거나 라인업을 시작하세요.');
 
       duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now()});
@@ -868,7 +920,7 @@
       saveGameState();
       updateInningBadge();
       updateCurrentBatterInfo();
-      ensureAutoPitcher();   // 수비팀이 바뀌면 투수 자동 선정
+      ensureAutoPitcher();   // 수비팀이 바뀌면 투수 자동 선정(라인업에 있으면 그 투수)
       syncSearchInputs();
       alert(`이닝 전환: ${inning}회 ${half} · 공격 ${offenseTeam}`);
     });
@@ -898,4 +950,3 @@
   </script>
 </body>
 </html>
-
