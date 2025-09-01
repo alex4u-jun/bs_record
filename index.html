@@ -39,7 +39,7 @@
       display: flex;
       gap: 12px;
       justify-content: center;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
     }
 
@@ -139,24 +139,25 @@
     }
     button.stat-btn:hover { background-color: #cde0fe; }
 
-    .duel-section {
+    .section {
       background-color: white;
       padding: 20px 25px;
       border-radius: 10px;
-      margin-top: 50px;
       box-shadow: 0 4px 10px rgb(26 115 232 / 0.1);
       overflow-x: auto;
+      margin-top: 18px;
     }
-    .duel-section h2 {
-      color: #1a73e8;
-      font-weight: 700;
-      margin-bottom: 16px;
-      font-size: 1.5rem;
-    }
-    .duel-section h3 {
+
+    .duel-header {
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
       margin-bottom: 12px;
-      color: #3c4043;
-      font-weight: 600;
+    }
+    .pill {
+      background:#e8f0fe; color:#1a73e8; padding:6px 12px; border-radius:999px; font-weight:700;
+    }
+
+    .duel-grid {
+      display:flex; gap: 30px; flex-wrap: wrap;
     }
 
     #pitcherSearch, #hitterSearch {
@@ -167,8 +168,7 @@
       border: 1.5px solid #ccc;
       font-size: 1rem;
     }
-    #pitcherSearchResults div, #hitterSearchResults div,
-    #lineupSearchResults div {
+    #pitcherSearchResults div, #hitterSearchResults div {
       padding: 6px 8px;
       margin-bottom: 6px;
       background-color: #f1f3f4;
@@ -176,8 +176,7 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-    #pitcherSearchResults div:hover, #hitterSearchResults div:hover,
-    #lineupSearchResults div:hover {
+    #pitcherSearchResults div:hover, #hitterSearchResults div:hover {
       background-color: #cde0fe;
     }
 
@@ -191,7 +190,6 @@
     #pitcherNameDisplay, #hitterNameDisplay {
       font-weight: 700;
       color: #1a73e8;
-      margin-bottom: 12px;
     }
 
     .stat-row{
@@ -216,8 +214,33 @@
       pointer-events:none;
     }
 
+    /* 라인업 용지 */
+    .lineup-card{
+      border:1px solid #cde0fe; border-radius:10px; padding:14px; background:#f9fbff;
+    }
+    .tabs{
+      display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;
+    }
+    .tab{
+      padding:6px 12px; border-radius:999px; border:1px solid #cde0fe; background:#e8f0fe; color:#1a73e8; cursor:pointer; font-weight:700;
+    }
+    .tab.active{ background:#1a73e8; color:#fff; }
+    .lineup-table{
+      width:100%; border-collapse:collapse; min-width:420px;
+    }
+    .lineup-table th, .lineup-table td{
+      border:1px solid #ccd7ff; padding:6px 8px; text-align:center; background:#fff;
+    }
+    .lineup-table th{ background:#eef3ff; color:#1a73e8; }
+    .lineup-table input{
+      width:100%; padding:6px 8px; border:1px solid #dde5ff; border-radius:6px;
+    }
+    .lineup-footer{
+      display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;
+    }
+
     .mvp-section {
-      margin-top: 40px;
+      margin-top: 24px;
       background:#f0f4ff;
       padding: 20px;
       border-radius: 8px;
@@ -248,33 +271,7 @@
       color: #155ab6;
     }
 
-    /* 라인업 UI */
-    .lineup-box{
-      background:#f9fbff; border:1px solid #cde0fe; border-radius:8px; padding:12px 14px; margin-top:8px;
-    }
-    .lineup-list{
-      list-style:none; padding:0; margin:0;
-    }
-    .lineup-item{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:8px; padding:8px 10px; margin-bottom:6px; background:#fff; border:1px solid #e6ecff; border-radius:6px;
-    }
-    .lineup-controls button{
-      padding:4px 8px; font-size:12px; margin-left:4px; background:#e8f0fe; color:#1a73e8; border:1px solid #cde0fe;
-    }
-    .badge{
-      display:inline-block; padding:2px 8px; font-size:12px; border-radius:999px; background:#e8f0fe; color:#1a73e8; margin-left:6px;
-    }
-
-    .duel-toolbar{
-      display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px;
-    }
-    .ghost{
-      opacity:0.6;
-    }
-    .muted{
-      color:#5f6368; font-size:0.9rem;
-    }
+    .muted{ color:#5f6368; font-size:0.92rem; }
   </style>
 </head>
 <body>
@@ -298,19 +295,35 @@
     <button type="submit">선수 추가</button>
   </form>
 
-  <!-- 등록 선수 목록 -->
-  <div class="player-list" id="playerList"></div>
+  <!-- === 투타 대결 + 라인업 + 이닝 === -->
+  <section class="section" id="duelSection">
+    <div class="duel-header">
+      <h2 style="margin:0;">투수-타자 대결 기록 입력</h2>
+      <div>
+        <span class="pill" id="inningBadge">1회 초 · 공격: Leaders</span>
+        <span class="pill" id="historyBadge" style="margin-left:6px;">히스토리 0건</span>
+      </div>
+    </div>
 
-  <!-- 투타 대결 기록 (스테퍼 + 라인업 + 히스토리) -->
-  <div class="duel-section">
-    <h2>투수-타자 대결 기록 입력</h2>
+    <!-- 라인업 용지 (팀별 탭) -->
+    <div class="lineup-card" style="margin-bottom:14px;">
+      <div class="tabs">
+        <button type="button" class="tab active" data-team="Leaders">Leaders 라인업</button>
+        <button type="button" class="tab" data-team="CSIA">CSIA 라인업</button>
+      </div>
+      <div id="lineupEditor"></div>
+      <div class="lineup-footer">
+        <button id="startLineupBtn" type="button">라인업 시작</button>
+        <button id="prevBatterBtn" type="button">◀ 이전 타자 보기</button>
+        <button id="nextBatterBtn" type="button">다음 타자 ▶</button>
+        <span class="muted" id="currentBatterInfo">현재 타자: -</span>
+      </div>
+    </div>
 
-    <!-- 히스토리 상태 -->
-    <div class="muted" id="historyStatus" style="margin-bottom:8px;">히스토리: 0건</div>
-
-    <div style="display:flex; gap: 30px; flex-wrap: wrap;">
+    <!-- 투수/타자 편집 그리드 -->
+    <div class="duel-grid">
       <!-- 투수 -->
-      <div style="flex:1; min-width: 280px;">
+      <div style="flex:1; min-width: 300px;">
         <h3>투수 선택 및 기록</h3>
         <input type="text" id="pitcherSearch" placeholder="투수 이름 검색" autocomplete="off" />
         <div id="pitcherSearchResults"></div>
@@ -319,9 +332,8 @@
           <div id="pitcherStatsContainer"></div>
         </div>
       </div>
-
-      <!-- 타자 (개별 검색 + 라인업) -->
-      <div style="flex:1; min-width: 320px;">
+      <!-- 타자 -->
+      <div style="flex:1; min-width: 300px;">
         <h3>타자 선택 및 기록</h3>
         <input type="text" id="hitterSearch" placeholder="(단독 선택용) 타자 이름 검색" autocomplete="off" />
         <div id="hitterSearchResults"></div>
@@ -329,29 +341,25 @@
           <div id="hitterNameDisplay"></div>
           <div id="hitterStatsContainer"></div>
         </div>
-
-        <!-- 라인업 관리 -->
-        <div class="lineup-box" style="margin-top:14px;">
-          <h3 style="margin-top:0;">라인업</h3>
-          <input type="text" id="lineupSearch" placeholder="라인업에 넣을 타자 검색" autocomplete="off" />
-          <div id="lineupSearchResults"></div>
-          <ul id="lineupList" class="lineup-list"></ul>
-          <div class="duel-toolbar">
-            <button type="button" id="startLineupBtn">라인업 시작</button>
-            <button type="button" id="prevBatterBtn">◀ 이전 타자 보기</button>
-            <button type="button" id="nextBatterBtn">다음 타자 ▶</button>
-            <span class="muted" id="currentBatterBadge"></span>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div class="duel-toolbar">
-      <button id="saveDuelBtn" style="margin-top: 6px;">대결 기록 저장(자동 다음 타자)</button>
-      <button id="historyForwardBtn" style="background:#6c63ff;">히스토리 다음 보기▶</button>
-      <button id="historyBackBtn" style="background:#6c63ff;">◀히스토리 이전 보기</button>
+    <!-- 하단 툴바 -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+      <button id="saveDuelBtn">대결 기록 저장(자동 다음 타자)</button>
+      <button id="historyBackBtn" style="background:#6c63ff;">◀ 히스토리 이전 보기</button>
+      <button id="historyForwardBtn" style="background:#6c63ff;">히스토리 다음 보기 ▶</button>
+      <button id="endHalfBtn" style="margin-left:auto; background:#e67e22;">이닝 종료(공수 전환)</button>
+      <button id="prevInningBtn" style="background:#34a853;">◀ 이전 이닝 보기</button>
+      <button id="nextInningBtn" style="background:#34a853;">다음 이닝 보기 ▶</button>
     </div>
-  </div>
+  </section>
+
+  <!-- 등록 선수 목록 -->
+  <section class="section">
+    <h2 style="margin-top:0;">등록 선수 목록</h2>
+    <div class="player-list" id="playerList"></div>
+  </section>
 
   <!-- MVP / JSON -->
   <div class="mvp-section">
@@ -370,93 +378,162 @@
   </div>
 
   <script>
+    /* ==== Storage Keys ==== */
     const STORAGE_KEY = 'playersData';
-    const LINEUP_KEY  = 'lineupData';
-    const HISTORY_KEY = 'duelHistory';
+    const LINEUP_KEY_BY_TEAM = (team)=>`lineup_${team}`;
+    const LINEUP_IDX_KEY_BY_TEAM = (team)=>`lineup_idx_${team}`;
+    const HISTORY_KEY = 'duelHistory_v2';
+    const GAME_STATE_KEY = 'gameState_v2';
 
+    /* ==== Data ==== */
     let players = [];
-    let lineup = []; // [{name, team}] 순서대로
-    let currentLineupIndex = 0;
+    let activeLineupTeam = 'Leaders';  // 라인업 편집 중인 탭
+    let offenseTeam = 'Leaders';       // 현재 공격 팀
+    let defenseTeam = 'CSIA';
+    let inning = 1;
+    let half = '초';                   // '초' | '말'
+    let duelHistory = [];              // {pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts}
+    let historyPtr = -1;
+    let viewInning = 1;
+    let viewHalf = '초';
 
-    // 히스토리: 각 타석의 (pitcherName, hitterName, timestamp)
-    let duelHistory = [];
-    let historyPtr = -1; // -1이면 마지막(최신) 위치 이후(즉, 새 기록 모드)
-
-    const hitterStatsHeaders = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
+    const hitterStatsHeaders  = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
     const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
 
-    /* ===== 저장/로드 ===== */
-    function loadPlayers() {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
-    }
-    function savePlayers(p) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-    }
-    function loadLineup(){
-      const data = localStorage.getItem(LINEUP_KEY);
-      return data ? JSON.parse(data) : [];
-    }
-    function saveLineup(){
-      localStorage.setItem(LINEUP_KEY, JSON.stringify(lineup));
-    }
-    function loadHistory(){
-      const data = localStorage.getItem(HISTORY_KEY);
-      return data ? JSON.parse(data) : [];
-    }
-    function saveHistory(){
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(duelHistory));
+    /* ==== Storage helpers ==== */
+    const savePlayers = (p)=>localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    const loadPlayers = ()=>JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    const saveLineup = (team, arr)=>localStorage.setItem(LINEUP_KEY_BY_TEAM(team), JSON.stringify(arr||[]));
+    const loadLineup = (team)=>JSON.parse(localStorage.getItem(LINEUP_KEY_BY_TEAM(team) )|| '[]');
+
+    const saveLineupIdx = (team, idx)=>localStorage.setItem(LINEUP_IDX_KEY_BY_TEAM(team), String(idx||0));
+    const loadLineupIdx = (team)=>parseInt(localStorage.getItem(LINEUP_IDX_KEY_BY_TEAM(team))||'0',10);
+
+    const saveHistory = ()=>localStorage.setItem(HISTORY_KEY, JSON.stringify(duelHistory));
+    const loadHistory = ()=>JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+
+    const saveGameState = ()=>{
+      localStorage.setItem(GAME_STATE_KEY, JSON.stringify({offenseTeam, defenseTeam, inning, half}));
+    };
+    const loadGameState = ()=>{
+      const s = JSON.parse(localStorage.getItem(GAME_STATE_KEY)||'{}');
+      offenseTeam = s.offenseTeam || 'Leaders';
+      defenseTeam = s.defenseTeam || 'CSIA';
+      inning = s.inning || 1;
+      half = s.half || '초';
+    };
+
+    /* ==== Init ==== */
+    function init(){
+      players = loadPlayers();
+      duelHistory = loadHistory();
+      loadGameState();
+      renderPlayerList();
+      updateMvpSelect();
+      setupSearchAndEdit();
+      buildLineupEditor();
+      updateInningBadge();
+      updateHistoryBadge();
+      updateCurrentBatterInfo();
+      attachLineupTabEvents();
+      ensureAutoPitcher();   // 초기에도 수비팀 투수 자동선택 시도
+      syncSearchInputs();    // 검색칸 동기화
     }
 
-    /* ===== 초기화 ===== */
-    function init() {
-      players = loadPlayers();
-      lineup  = loadLineup();
-      duelHistory = loadHistory();
-      renderPlayerList();
-      setupSearchAndEdit();
-      renderLineup();
-      updateMvpSelect();
-      updateHistoryStatus();
-      if(lineup.length>0){
-        updateCurrentBatterBadge();
+    /* ==== UI Utils ==== */
+    function updateInningBadge(){
+      document.getElementById('inningBadge').textContent =
+        `${inning}회 ${half} · 공격: ${offenseTeam}`;
+    }
+    function updateHistoryBadge(){
+      const total = duelHistory.length;
+      const ptrText = (historyPtr===-1) ? '최신' : `${historyPtr+1}/${total}`;
+      document.getElementById('historyBadge').textContent = `히스토리 ${total}건 · 포인터 ${ptrText}`;
+    }
+    function currentLineup(){ return loadLineup(offenseTeam); }
+    function currentIdx(){ return loadLineupIdx(offenseTeam); }
+    function setCurrentIdx(v){ saveLineupIdx(offenseTeam, v); }
+
+    function getCurrentBatter(){
+      const lu = currentLineup();
+      if(lu.length===0) return null;
+      const idx = currentIdx()%lu.length;
+      return lu[idx]||null;
+    }
+    function updateCurrentBatterInfo(){
+      const b = getCurrentBatter();
+      document.getElementById('currentBatterInfo').textContent =
+        b ? `현재 타자: ${b}` : '현재 타자: (라인업 비어 있음)';
+    }
+
+    /* === 새로 추가된 핵심: 투수/타자 검색칸 자동 동기화 === */
+    function syncSearchInputs(){
+      // 타자: 현재 타자
+      const curBatter = getCurrentBatter();
+      if(curBatter){
+        document.getElementById('hitterSearch').value = curBatter;
+      }
+      // 투수: 이미 선택돼 있으면 그대로, 없으면 자동 선택된 투수 이름 넣기
+      const pName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
+      if(pName){
+        document.getElementById('pitcherSearch').value = pName;
       }
     }
 
-    /* ===== 선수 추가 폼 ===== */
-    document.getElementById('addPlayerForm').addEventListener('submit', e => {
+    function ensureAutoPitcher(){
+      // 편집 패널에 투수 미선택이면, 수비팀 투수 중 첫 번째를 자동 선택
+      const pSelected = (document.getElementById('pitcherNameDisplay').textContent||'').trim();
+      if(pSelected) return;
+      const cand = players.find(p=>p.type==='투수' && p.team===defenseTeam);
+      if(!cand) return;
+      const pitcherEdit=document.getElementById('pitcherEditSection');
+      const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
+      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
+      pitcherEdit.style.display='block';
+      renderEditor(pitcherStatsContainer,pitcherNameDisplay,cand,pitcherStatsHeaders);
+      document.getElementById('pitcherSearch').value = cand.name; // 검색칸 자동 채움
+    }
+
+    /* ==== 선수 추가 & 목록 ==== */
+    const playerListDiv = document.getElementById('playerList');
+
+    document.getElementById('addPlayerForm').addEventListener('submit', e=>{
       e.preventDefault();
       const name = document.getElementById('playerName').value.trim();
       const type = document.getElementById('playerType').value;
       const team = document.getElementById('playerTeam').value;
-      if (!name || !team) return alert('모든 값을 입력하세요.');
-      if (players.some(p => p.name === name && p.type === type)) return alert('이미 등록된 선수입니다.');
+      if(!name || !team) return alert('모든 값을 입력하세요.');
+      if(players.some(p=>p.name===name && p.type===type)) return alert('이미 등록된 선수입니다.');
 
-      const stats = (type === '타자')
-        ? hitterStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {})
-        : pitcherStatsHeaders.reduce((acc, cur) => (acc[cur] = 0, acc), {});
-      players.push({ name, type, team, stats, mvpCount: 0 });
+      const stats = (type==='타자')
+        ? hitterStatsHeaders.reduce((a,c)=>(a[c]=0,a),{})
+        : pitcherStatsHeaders.reduce((a,c)=>(a[c]=0,a),{});
+      players.push({name, type, team, stats, mvpCount:0});
       savePlayers(players);
       renderPlayerList();
       updateMvpSelect();
+      buildLineupEditor();
       e.target.reset();
+      ensureAutoPitcher(); // 새 투수 추가되었을 수도 있으니 한번 더
+      syncSearchInputs();
     });
 
-    /* ===== 선수 리스트 렌더 및 버튼 동작 ===== */
-    const playerListDiv = document.getElementById('playerList');
-    playerListDiv.addEventListener('click', e => {
+    playerListDiv.addEventListener('click', e=>{
       const idx = parseInt(e.target.dataset.idx);
       if (e.target.classList.contains('delete-btn')) {
         if (confirm(`${players[idx].name} 선수를 삭제하시겠습니까?`)) {
-          // 라인업에서도 제거
-          lineup = lineup.filter(x => !(x.name===players[idx].name && x.team===players[idx].team));
-          saveLineup();
-          renderLineup();
-
-          players.splice(idx, 1);
+          ['Leaders','CSIA'].forEach(t=>{
+            const lu = loadLineup(t).filter(n=>n!==players[idx].name);
+            saveLineup(t, lu);
+          });
+          players.splice(idx,1);
           savePlayers(players);
           renderPlayerList();
+          buildLineupEditor();
           updateMvpSelect();
+          ensureAutoPitcher();
+          syncSearchInputs();
         }
       } else if (e.target.classList.contains('stat-btn')) {
         const stat = e.target.dataset.stat;
@@ -475,21 +552,21 @@
       }
     });
 
-    function renderPlayerList() {
+    function renderPlayerList(){
       playerListDiv.innerHTML = '';
-      if (players.length === 0) {
+      if(players.length===0){
         playerListDiv.textContent = '등록된 선수가 없습니다.';
         return;
       }
-      players.forEach((player, idx) => {
+      players.forEach((player, idx)=>{
         const container = document.createElement('div');
+        const keys = Object.keys(player.stats);
         let html = `<h3>${player.name} (${player.team} / ${player.type}) <button class="delete-btn" data-idx="${idx}">삭제</button></h3>`;
-        const statsKeys = Object.keys(player.stats);
-        html += '<table><thead><tr>' + statsKeys.map(stat => `<th>${stat}</th>`).join('') + '<th>MVP 횟수</th></tr></thead><tbody><tr>';
-        html += statsKeys.map(stat => `
+        html += '<table><thead><tr>'+keys.map(k=>`<th>${k}</th>`).join('')+'<th>MVP 횟수</th></tr></thead><tbody><tr>';
+        html += keys.map(k=>`
           <td class="buttons-cell">
-            <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="1">▲</button>
-            <button class="stat-btn" data-idx="${idx}" data-stat="${stat}" data-delta="-1">▼</button>
+            <button class="stat-btn" data-idx="${idx}" data-stat="${k}" data-delta="1">▲</button>
+            <button class="stat-btn" data-idx="${idx}" data-stat="${k}" data-delta="-1">▼</button>
           </td>`).join('');
         html += `
           <td class="buttons-cell">
@@ -497,335 +574,236 @@
             <button class="stat-btn" data-idx="${idx}" data-stat="mvpCount" data-delta="-1">▼</button>
           </td>
         </tr><tr>`;
-        html += statsKeys.map(stat => `<td>${player.stats[stat]}</td>`).join('');
-        html += `<td>${player.mvpCount || 0}</td></tr></tbody></table>`;
+        html += keys.map(k=>`<td>${player.stats[k]}</td>`).join('');
+        html += `<td>${player.mvpCount||0}</td></tr></tbody></table>`;
         container.innerHTML = html;
         playerListDiv.appendChild(container);
       });
     }
 
-    /* ===== MVP Select ===== */
-    function updateMvpSelect() {
-      const mvpSelect = document.getElementById('mvpSelect');
-      mvpSelect.innerHTML = '<option value="" disabled selected>선수 선택</option>';
-      players.forEach((p, i) => {
+    /* ==== MVP ==== */
+    function updateMvpSelect(){
+      const sel = document.getElementById('mvpSelect');
+      sel.innerHTML = '<option value="" disabled selected>선수 선택</option>';
+      players.forEach((p,i)=>{
         const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = `${p.name} (${p.team} / ${p.type})`;
-        mvpSelect.appendChild(opt);
+        opt.value=i; opt.textContent=`${p.name} (${p.team} / ${p.type})`;
+        sel.appendChild(opt);
       });
     }
-
-    document.getElementById('selectMvpBtn').addEventListener('click', () => {
-      const sel = document.getElementById('mvpSelect');
-      const idx = sel.value;
-      if (idx === '' || idx == null) return alert('선수를 선택하세요.');
-      players[idx].mvpCount = (players[idx].mvpCount || 0) + 1;
+    document.getElementById('selectMvpBtn').addEventListener('click', ()=>{
+      const sel=document.getElementById('mvpSelect');
+      const idx=sel.value;
+      if(idx===''||idx==null) return alert('선수를 선택하세요.');
+      players[idx].mvpCount=(players[idx].mvpCount||0)+1;
       savePlayers(players);
-      document.getElementById('mvpMessage').textContent =
-        `${players[idx].name} 선수를 MVP로 기록했습니다. (누적 ${players[idx].mvpCount})`;
-      localStorage.setItem('lastMvp', JSON.stringify({
-        name: players[idx].name, team: players[idx].team, type: players[idx].type
-      }));
+      document.getElementById('mvpMessage').textContent=`${players[idx].name} 선수를 MVP로 기록했습니다. (누적 ${players[idx].mvpCount})`;
       renderPlayerList();
     });
 
-    /* ===== JSON 내보내기/불러오기 ===== */
-    document.getElementById('exportJsonBtn').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify(players, null, 2)], { type: 'application/json' });
+    document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(players,null,2)],{type:'application/json'});
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'players.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const a=document.createElement('a'); a.href=url; a.download='players.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    });
+    document.getElementById('importJsonBtn').addEventListener('click', async ()=>{
+      const file = document.getElementById('importJsonFile').files?.[0];
+      if(!file) return alert('JSON 파일을 선택하세요.');
+      try{
+        const data = JSON.parse(await file.text());
+        if(!Array.isArray(data)) throw new Error('형식 오류');
+        players=data; savePlayers(players);
+        renderPlayerList(); updateMvpSelect(); buildLineupEditor();
+        ensureAutoPitcher(); syncSearchInputs();
+        alert('불러오기 완료');
+      }catch(e){ alert('불러오기 실패: '+e.message); }
     });
 
-    document.getElementById('importJsonBtn').addEventListener('click', async () => {
-      const fileInput = document.getElementById('importJsonFile');
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) return alert('JSON 파일을 선택하세요.');
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (!Array.isArray(data)) throw new Error('형식이 올바르지 않습니다.');
-        players = data;
-        savePlayers(players);
-        renderPlayerList();
-        updateMvpSelect();
-        alert('불러오기가 완료되었습니다.');
-      } catch (e) {
-        alert('불러오기 실패: ' + e.message);
-      }
-    });
-
-    /* ===== 스테퍼 UI (공용) ===== */
+    /* ==== 편집 스테퍼 공용 ==== */
     function addStepperRow(container, player, statKey){
-      const row = document.createElement('div');
-      row.className = 'stat-row';
-
-      const label = document.createElement('label');
-      label.textContent = statKey;
-
-      const counter = document.createElement('div');
-      counter.className = 'counter';
-
-      const dec = document.createElement('button');
-      dec.className = 'big-btn'; dec.type = 'button'; dec.textContent = '−';
-
-      const val = document.createElement('input');
-      val.className = 'val';
-      val.type = 'number';
-      val.value = player.stats[statKey] || 0;
-      val.readOnly = true;
-      val.inputMode = 'none';
-
-      const inc = document.createElement('button');
-      inc.className = 'big-btn'; inc.type = 'button'; inc.textContent = '+';
-
-      dec.addEventListener('click', () => {
-        const curr = player.stats[statKey] || 0;
-        if (curr <= 0) return;
-        player.stats[statKey] = curr - 1;
-        val.value = player.stats[statKey];
-        savePlayers(players);
-      });
-      inc.addEventListener('click', () => {
-        const curr = player.stats[statKey] || 0;
-        player.stats[statKey] = curr + 1;
-        val.value = player.stats[statKey];
-        savePlayers(players);
-      });
-
-      counter.appendChild(dec);
-      counter.appendChild(val);
-      counter.appendChild(inc);
-
-      row.appendChild(label);
-      row.appendChild(counter);
-      container.appendChild(row);
+      const row=document.createElement('div'); row.className='stat-row';
+      const label=document.createElement('label'); label.textContent=statKey;
+      const counter=document.createElement('div'); counter.className='counter';
+      const dec=document.createElement('button'); dec.className='big-btn'; dec.type='button'; dec.textContent='−';
+      const val=document.createElement('input'); val.className='val'; val.type='number'; val.value=player.stats[statKey]||0; val.readOnly=true;
+      const inc=document.createElement('button'); inc.className='big-btn'; inc.type='button'; inc.textContent='+';
+      dec.addEventListener('click',()=>{ const c=player.stats[statKey]||0; if(c<=0) return; player.stats[statKey]=c-1; val.value=player.stats[statKey]; savePlayers(players); });
+      inc.addEventListener('click',()=>{ const c=player.stats[statKey]||0; player.stats[statKey]=c+1; val.value=player.stats[statKey]; savePlayers(players); });
+      counter.append(dec,val,inc); row.append(label,counter); container.appendChild(row);
     }
-
     function renderEditor(containerEl, nameDisplayEl, player, headers){
       nameDisplayEl.textContent = `${player.name} (${player.team})`;
-      containerEl.innerHTML = '';
-      headers.forEach(h => addStepperRow(containerEl, player, h));
+      containerEl.innerHTML=''; headers.forEach(h=>addStepperRow(containerEl, player, h));
     }
 
-    /* ===== 투수/타자 선택 & 편집 ===== */
-    function findPlayerByNameType(name, type){
-      return players.find(p => p.name === name && p.type === type);
-    }
+    /* ==== 투수/타자 검색 편집 ==== */
+    function findPlayer(name,type){ return players.find(p=>p.name===name && p.type===type); }
 
     function setupSearchAndEdit(){
-      const pitcherInput = document.getElementById('pitcherSearch');
-      const hitterInput  = document.getElementById('hitterSearch');
-      const pitcherResults = document.getElementById('pitcherSearchResults');
-      const hitterResults  = document.getElementById('hitterSearchResults');
+      const pitcherInput=document.getElementById('pitcherSearch');
+      const hitterInput =document.getElementById('hitterSearch');
+      const pitcherResults=document.getElementById('pitcherSearchResults');
+      const hitterResults =document.getElementById('hitterSearchResults');
 
-      const pitcherEdit = document.getElementById('pitcherEditSection');
-      const hitterEdit  = document.getElementById('hitterEditSection');
-      const pitcherNameDisplay = document.getElementById('pitcherNameDisplay');
-      const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
-      const pitcherStatsContainer = document.getElementById('pitcherStatsContainer');
-      const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
+      const pitcherEdit=document.getElementById('pitcherEditSection');
+      const hitterEdit =document.getElementById('hitterEditSection');
+      const pitcherNameDisplay=document.getElementById('pitcherNameDisplay');
+      const hitterNameDisplay =document.getElementById('hitterNameDisplay');
+      const pitcherStatsContainer=document.getElementById('pitcherStatsContainer');
+      const hitterStatsContainer =document.getElementById('hitterStatsContainer');
 
-      function renderResultList(inputEl, resultsEl, type){
-        const keyword = inputEl.value.trim().toLowerCase();
-        const list = players.filter(p => p.type === type && p.name.toLowerCase().includes(keyword));
-        resultsEl.innerHTML = list.map(p =>
-          `<div data-name="${p.name}" data-type="${p.type}">${p.name} (${p.team})</div>`
-        ).join('');
-        resultsEl.style.display = list.length ? 'block' : 'none';
+      function renderList(inputEl, resultsEl, type){
+        const kw=inputEl.value.trim().toLowerCase();
+        const list=players.filter(p=>p.type===type && p.name.toLowerCase().includes(kw));
+        resultsEl.innerHTML=list.map(p=>`<div data-name="${p.name}">${p.name} (${p.team})</div>`).join('');
+        resultsEl.style.display=list.length?'block':'none';
       }
+      pitcherInput.addEventListener('input',()=>renderList(pitcherInput,pitcherResults,'투수'));
+      hitterInput .addEventListener('input',()=>renderList(hitterInput ,hitterResults ,'타자'));
 
-      pitcherInput.addEventListener('input', () => renderResultList(pitcherInput, pitcherResults, '투수'));
-      hitterInput .addEventListener('input', () => renderResultList(hitterInput , hitterResults , '타자'));
-
-      // 선택 시 편집 렌더
-      pitcherResults.addEventListener('click', (e) => {
-        if (e.target.matches('div[data-name]')) {
-          const name = e.target.getAttribute('data-name');
-          const player = findPlayerByNameType(name, '투수');
-          if (!player) return;
-          pitcherEdit.style.display = 'block';
-          renderEditor(pitcherStatsContainer, pitcherNameDisplay, player, pitcherStatsHeaders);
-          pitcherResults.style.display = 'none';
+      pitcherResults.addEventListener('click',(e)=>{
+        if(e.target.matches('div[data-name]')){
+          const name=e.target.getAttribute('data-name');
+          const p=findPlayer(name,'투수'); if(!p) return;
+          pitcherEdit.style.display='block'; renderEditor(pitcherStatsContainer,pitcherNameDisplay,p,pitcherStatsHeaders);
+          pitcherResults.style.display='none';
+          syncSearchInputs();
         }
       });
-      hitterResults.addEventListener('click', (e) => {
-        if (e.target.matches('div[data-name]')) {
-          const name = e.target.getAttribute('data-name');
-          const player = findPlayerByNameType(name, '타자');
-          if (!player) return;
-          hitterEdit.style.display = 'block';
-          renderEditor(hitterStatsContainer, hitterNameDisplay, player, hitterStatsHeaders);
-          hitterResults.style.display = 'none';
-          // 라인업 포인터도 해당 타자로 이동(있으면)
-          const li = lineup.findIndex(x => x.name===player.name && x.team===player.team);
-          if(li>=0){ currentLineupIndex = li; updateCurrentBatterBadge(); }
+      hitterResults.addEventListener('click',(e)=>{
+        if(e.target.matches('div[data-name]')){
+          const name=e.target.getAttribute('data-name');
+          const h=findPlayer(name,'타자'); if(!h) return;
+          hitterEdit.style.display='block'; renderEditor(hitterStatsContainer,hitterNameDisplay,h,hitterStatsHeaders);
+          hitterResults.style.display='none';
+          // 라인업 포인터를 해당 타자로 이동(있으면)
+          const lu=currentLineup(); const i=lu.indexOf(name);
+          if(i>=0){ setCurrentIdx(i); updateCurrentBatterInfo(); }
+          syncSearchInputs();
         }
       });
-
-      // 포커스 시 목록 재표시
-      pitcherInput.addEventListener('focus', () => { if (pitcherInput.value) pitcherResults.style.display = 'block'; });
-      hitterInput .addEventListener('focus', () => { if (hitterInput.value)  hitterResults.style.display  = 'block'; });
     }
 
-    /* ===== 라인업 관리 ===== */
-    const lineupListEl = document.getElementById('lineupList');
-    const lineupSearch = document.getElementById('lineupSearch');
-    const lineupSearchResults = document.getElementById('lineupSearchResults');
-    const currentBatterBadge = document.getElementById('currentBatterBadge');
+    /* ==== 라인업 용지(팀별) ==== */
+    function buildLineupEditor(){
+      const root=document.getElementById('lineupEditor');
+      const team = activeLineupTeam;
+      const lineup = loadLineup(team);
+      const batters = players.filter(p=>p.type==='타자' && p.team===team).map(p=>p.name);
 
-    lineupSearch.addEventListener('input', () => {
-      const kw = lineupSearch.value.trim().toLowerCase();
-      const list = players.filter(p => p.type==='타자' && p.name.toLowerCase().includes(kw));
-      lineupSearchResults.innerHTML = list.map(p=>`<div data-name="${p.name}" data-team="${p.team}">추가: ${p.name} (${p.team})</div>`).join('');
-      lineupSearchResults.style.display = list.length?'block':'none';
-    });
+      const dlId = `dl_${team}`;
+      const dl = `<datalist id="${dlId}">${batters.map(n=>`<option value="${n}">`).join('')}</datalist>`;
 
-    lineupSearchResults.addEventListener('click', (e)=>{
-      if(e.target.matches('div[data-name]')){
-        const name = e.target.getAttribute('data-name');
-        const team = e.target.getAttribute('data-team');
-        if(lineup.some(x=>x.name===name && x.team===team)){
-          alert('이미 라인업에 있는 선수입니다.');
-          return;
-        }
-        lineup.push({name, team});
-        saveLineup();
-        renderLineup();
-        lineupSearchResults.style.display='none';
-        lineupSearch.value='';
-      }
-    });
+      let html = `
+        ${dl}
+        <table class="lineup-table">
+          <thead><tr><th style="width:60px;">타순</th><th>성명</th></tr></thead>
+          <tbody>
+            ${Array.from({length:9}).map((_,i)=>`
+              <tr>
+                <td>${i+1}</td>
+                <td><input list="${dlId}" data-idx="${i}" class="lu-input" placeholder="이름 입력" value="${lineup[i]||''}"></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      root.innerHTML = html;
 
-    function renderLineup(){
-      lineupListEl.innerHTML = '';
-      lineup.forEach((p, idx)=>{
-        const li = document.createElement('li');
-        li.className='lineup-item';
-        li.innerHTML = `
-          <div>
-            ${idx+1}. ${p.name} (${p.team})
-            ${idx===currentLineupIndex?'<span class="badge">현재 타자</span>':''}
-          </div>
-          <div class="lineup-controls">
-            <button type="button" data-idx="${idx}" data-act="up">▲</button>
-            <button type="button" data-idx="${idx}" data-act="down">▼</button>
-            <button type="button" data-idx="${idx}" data-act="remove">🗑️</button>
-          </div>
-        `;
-        lineupListEl.appendChild(li);
+      root.querySelectorAll('.lu-input').forEach(inp=>{
+        inp.addEventListener('change',()=>{
+          const arr=loadLineup(team);
+          const idx=parseInt(inp.dataset.idx,10);
+          arr[idx]=inp.value.trim();
+          if(!arr[idx]) arr.splice(idx,1);
+          saveLineup(team, arr);
+          updateCurrentBatterInfo();
+          syncSearchInputs();
+        });
       });
-      updateCurrentBatterBadge();
     }
 
-    lineupListEl.addEventListener('click', (e)=>{
-      const idx = parseInt(e.target.dataset.idx);
-      const act = e.target.dataset.act;
-      if(Number.isNaN(idx) || !act) return;
-
-      if(act==='remove'){
-        lineup.splice(idx,1);
-        if(currentLineupIndex>=lineup.length) currentLineupIndex = Math.max(0, lineup.length-1);
-      }else if(act==='up' && idx>0){
-        [lineup[idx-1], lineup[idx]] = [lineup[idx], lineup[idx-1]];
-        if(currentLineupIndex===idx) currentLineupIndex=idx-1;
-        else if(currentLineupIndex===idx-1) currentLineupIndex=idx;
-      }else if(act==='down' && idx<lineup.length-1){
-        [lineup[idx+1], lineup[idx]] = [lineup[idx], lineup[idx+1]];
-        if(currentLineupIndex===idx) currentLineupIndex=idx+1;
-        else if(currentLineupIndex===idx+1) currentLineupIndex=idx;
-      }
-      saveLineup();
-      renderLineup();
-    });
+    function attachLineupTabEvents(){
+      document.querySelectorAll('.tab').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          activeLineupTeam = btn.dataset.team;
+          buildLineupEditor();
+        });
+      });
+    }
 
     document.getElementById('startLineupBtn').addEventListener('click', ()=>{
-      if(lineup.length===0) return alert('라인업을 먼저 구성하세요.');
-      currentLineupIndex = 0;
-      saveLineup();
-      renderLineup();
-      loadHitterFromLineup();
+      const lu=currentLineup();
+      if(lu.length===0) return alert('현재 공격 팀의 라인업을 먼저 입력하세요.');
+      saveLineupIdx(offenseTeam, 0);
+      updateCurrentBatterInfo();
+
+      // 타자 패널/검색칸 동기화
+      const hitter = findPlayer(lu[0],'타자');
+      if(hitter){
+        const ec=document.getElementById('hitterEditSection');
+        const nd=document.getElementById('hitterNameDisplay');
+        const sc=document.getElementById('hitterStatsContainer');
+        ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+      }
+      ensureAutoPitcher();
+      syncSearchInputs();
     });
 
     document.getElementById('nextBatterBtn').addEventListener('click', ()=>{
-      goNextBatterOnly();
+      const lu=currentLineup();
+      if(lu.length===0) return alert('라인업이 비어 있습니다.');
+      const idx=(currentIdx()+1)%lu.length;
+      setCurrentIdx(idx);
+      updateCurrentBatterInfo();
+      const hitter=findPlayer(lu[idx],'타자');
+      if(hitter){
+        const ec=document.getElementById('hitterEditSection');
+        const nd=document.getElementById('hitterNameDisplay');
+        const sc=document.getElementById('hitterStatsContainer');
+        ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+      }
+      ensureAutoPitcher();
+      syncSearchInputs();
     });
 
     document.getElementById('prevBatterBtn').addEventListener('click', ()=>{
-      if(duelHistory.length===0) return alert('이전 타자 기록이 없습니다.');
-      // 히스토리 뒤에서 한 칸 이동(= 마지막 기록으로부터)
-      if(historyPtr===-1) historyPtr = duelHistory.length; // 최신 다음을 가리켰다면
+      const list = duelHistory.filter(r=>true);
+      if(list.length===0) return alert('이전 타자 기록이 없습니다.');
+      if(historyPtr===-1) historyPtr = list.length;
       historyPtr = Math.max(0, historyPtr-1);
-      const rec = duelHistory[historyPtr];
-      loadDuelFromHistory(rec);
-      updateHistoryStatus();
+      loadFromHistory(list[historyPtr]);
+      updateHistoryBadge();
+      syncSearchInputs();
     });
 
-    function goNextBatterOnly(){
-      if(lineup.length===0) return alert('라인업이 비어 있습니다.');
-      currentLineupIndex = (currentLineupIndex + 1) % lineup.length;
-      saveLineup();
-      renderLineup();
-      loadHitterFromLineup();
-    }
-
-    function loadHitterFromLineup(){
-      const entry = lineup[currentLineupIndex];
-      if(!entry) return;
-      const hitter = findPlayerByNameType(entry.name, '타자');
-      const hitterEdit  = document.getElementById('hitterEditSection');
-      const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
-      const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
-      if(hitter){
-        hitterEdit.style.display='block';
-        renderEditor(hitterStatsContainer, hitterNameDisplay, hitter, hitterStatsHeaders);
+    function loadFromHistory(rec){
+      // 투수
+      const p=findPlayer(rec.pitcherName,'투수');
+      if(p){
+        const ec=document.getElementById('pitcherEditSection');
+        const nd=document.getElementById('pitcherNameDisplay');
+        const sc=document.getElementById('pitcherStatsContainer');
+        ec.style.display='block'; renderEditor(sc,nd,p,pitcherStatsHeaders);
+        document.getElementById('pitcherSearch').value=p.name;
       }
-    }
-
-    function updateCurrentBatterBadge(){
-      const msg = (lineup.length===0) ? '라인업 없음'
-        : `현재 타자: ${lineup[currentLineupIndex]?.name || '-'} (${lineup[currentLineupIndex]?.team || '-'}) | 타순 ${currentLineupIndex+1}/${lineup.length}`;
-      currentBatterBadge.textContent = msg;
-      renderLineup(); // 배지 갱신 반영
-    }
-
-    /* ===== 히스토리 ===== */
-    const historyStatusEl = document.getElementById('historyStatus');
-    function updateHistoryStatus(){
-      const total = duelHistory.length;
-      const ptrText = (historyPtr===-1) ? '최신 위치' : `${historyPtr+1}/${total}`;
-      historyStatusEl.textContent = `히스토리: ${total}건 · 포인터: ${ptrText}`;
-    }
-
-    function loadDuelFromHistory(rec){
-      // 투수 복원
-      const pitcher = findPlayerByNameType(rec.pitcherName, '투수');
-      if(pitcher){
-        const pitcherEdit = document.getElementById('pitcherEditSection');
-        const pitcherNameDisplay = document.getElementById('pitcherNameDisplay');
-        const pitcherStatsContainer = document.getElementById('pitcherStatsContainer');
-        pitcherEdit.style.display='block';
-        renderEditor(pitcherStatsContainer, pitcherNameDisplay, pitcher, pitcherStatsHeaders);
-        document.getElementById('pitcherSearch').value = pitcher.name;
-      }
-      // 타자 복원
-      const hitter = findPlayerByNameType(rec.hitterName, '타자');
-      if(hitter){
-        const hitterEdit  = document.getElementById('hitterEditSection');
-        const hitterNameDisplay  = document.getElementById('hitterNameDisplay');
-        const hitterStatsContainer  = document.getElementById('hitterStatsContainer');
-        hitterEdit.style.display='block';
-        renderEditor(hitterStatsContainer, hitterNameDisplay, hitter, hitterStatsHeaders);
-        document.getElementById('hitterSearch').value = hitter.name;
-
-        // 라인업 포인터도 해당 타자로 맞춤(있다면)
-        const li = lineup.findIndex(x => x.name===hitter.name && x.team===hitter.team);
-        if(li>=0){ currentLineupIndex = li; updateCurrentBatterBadge(); }
+      // 타자
+      const h=findPlayer(rec.hitterName,'타자');
+      if(h){
+        const ec=document.getElementById('hitterEditSection');
+        const nd=document.getElementById('hitterNameDisplay');
+        const sc=document.getElementById('hitterStatsContainer');
+        ec.style.display='block'; renderEditor(sc,nd,h,hitterStatsHeaders);
+        document.getElementById('hitterSearch').value=h.name;
+        // 라인업 포인터 동기화(해당 이닝의 공격팀에서만)
+        if(rec.offenseTeam===offenseTeam){
+          const lu=currentLineup();
+          const li=lu.indexOf(h.name);
+          if(li>=0){ setCurrentIdx(li); updateCurrentBatterInfo(); }
+        }
       }
     }
 
@@ -833,51 +811,89 @@
       if(duelHistory.length===0) return alert('히스토리 없음');
       if(historyPtr===-1) historyPtr = duelHistory.length-1;
       else historyPtr = Math.max(0, historyPtr-1);
-      loadDuelFromHistory(duelHistory[historyPtr]);
-      updateHistoryStatus();
+      loadFromHistory(duelHistory[historyPtr]);
+      updateHistoryBadge();
+      syncSearchInputs();
     });
-
     document.getElementById('historyForwardBtn').addEventListener('click', ()=>{
       if(duelHistory.length===0) return alert('히스토리 없음');
-      if(historyPtr===-1) return; // 이미 최신
+      if(historyPtr===-1) return;
       historyPtr++;
-      if(historyPtr>=duelHistory.length){ historyPtr=-1; updateHistoryStatus(); return; }
-      loadDuelFromHistory(duelHistory[historyPtr]);
-      updateHistoryStatus();
+      if(historyPtr>=duelHistory.length){ historyPtr=-1; updateHistoryBadge(); syncSearchInputs(); return; }
+      loadFromHistory(duelHistory[historyPtr]);
+      updateHistoryBadge();
+      syncSearchInputs();
     });
 
-    /* ===== 대결 저장 ===== */
-    document.getElementById('saveDuelBtn').addEventListener('click', () => {
-      // 현재 선택된 투수/타자 이름 가져오기
-      const currPitcherName = document.getElementById('pitcherNameDisplay').textContent.split(' (')[0] || '';
-      let currHitterName = document.getElementById('hitterNameDisplay').textContent.split(' (')[0] || '';
-
-      // 라인업이 있을 경우 라인업 현재 타자를 우선으로 사용
-      if(lineup.length>0){
-        currHitterName = lineup[currentLineupIndex]?.name || currHitterName;
+    /* ==== 대결 저장 ==== */
+    document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
+      const pitcherName = (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
+      let hitterName = (document.getElementById('hitterNameDisplay').textContent||'').split(' (')[0].trim();
+      const lu=currentLineup();
+      if(lu.length>0){
+        const idx=currentIdx()%lu.length;
+        hitterName = lu[idx] || hitterName;
       }
+      if(!pitcherName) return alert('투수를 선택하세요.');
+      if(!hitterName) return alert('타자를 선택하거나 라인업을 시작하세요.');
 
-      if(!currPitcherName) return alert('투수를 선택하세요.');
-      if(!currHitterName) return alert('타자를 선택하거나 라인업을 시작하세요.');
-
-      duelHistory.push({
-        pitcherName: currPitcherName,
-        hitterName: currHitterName,
-        ts: Date.now()
-      });
+      duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now()});
       saveHistory();
-      historyPtr = -1; // 저장하면 최신으로 이동
-      updateHistoryStatus();
+      historyPtr=-1; updateHistoryBadge();
 
-      // 저장 즉시 다음 타자로 자동 진행
-      goNextBatterOnly();
+      // 다음 타자 진행
+      if(lu.length>0){
+        setCurrentIdx((currentIdx()+1)%lu.length);
+        updateCurrentBatterInfo();
+        const hitter=findPlayer(getCurrentBatter(),'타자');
+        if(hitter){
+          const ec=document.getElementById('hitterEditSection');
+          const nd=document.getElementById('hitterNameDisplay');
+          const sc=document.getElementById('hitterStatsContainer');
+          ec.style.display='block'; renderEditor(sc,nd,hitter,hitterStatsHeaders);
+        }
+      }
+      ensureAutoPitcher();
+      syncSearchInputs();
 
       savePlayers(players);
       alert('대결 기록이 저장되었습니다.');
       renderPlayerList();
     });
 
-    // 시작
+    /* ==== 이닝 종료 & 이전/다음 이닝 보기 ==== */
+    document.getElementById('endHalfBtn').addEventListener('click', ()=>{
+      [offenseTeam, defenseTeam] = [defenseTeam, offenseTeam];
+      if(half==='초'){ half='말'; } else { half='초'; inning += 1; }
+      saveGameState();
+      updateInningBadge();
+      updateCurrentBatterInfo();
+      ensureAutoPitcher();   // 수비팀이 바뀌면 투수 자동 선정
+      syncSearchInputs();
+      alert(`이닝 전환: ${inning}회 ${half} · 공격 ${offenseTeam}`);
+    });
+
+    document.getElementById('prevInningBtn').addEventListener('click', ()=>{
+      if(viewHalf==='말'){ viewHalf='초'; viewInning = Math.max(1, viewInning-1); }
+      else { if(viewInning>1){ viewHalf='말'; viewInning-=1; } }
+      jumpToLastPAOf(viewInning, viewHalf);
+    });
+    document.getElementById('nextInningBtn').addEventListener('click', ()=>{
+      if(viewHalf==='초'){ viewHalf='말'; }
+      else { viewHalf='초'; viewInning += 1; }
+      jumpToLastPAOf(viewInning, viewHalf);
+    });
+
+    function jumpToLastPAOf(inn, hf){
+      const list = duelHistory.filter(r=>r.inning===inn && r.half===hf);
+      if(list.length===0){ alert(`${inn}회 ${hf} 기록이 없습니다.`); updateHistoryBadge(); return; }
+      const rec = list[list.length-1];
+      loadFromHistory(rec);
+      syncSearchInputs();
+      alert(`${inn}회 ${hf} 마지막 타석을 불러왔습니다.`);
+    }
+
+    /* ==== 시작 ==== */
     init();
   </script>
 </body>
