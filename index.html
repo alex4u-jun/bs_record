@@ -27,22 +27,22 @@
 }
 [data-theme="dark"]{
   /* 더 또렷하고 자연스러운 다크 팔레트 */
-  --bg:#0b1220;          /* 전체 배경: 잉크 남색 */
-  --text:#e7ecf7;        /* 본문 텍스트: 아주 밝은 파스텔 */
-  --muted:#9aa6bd;       /* 보조 텍스트 */
-  --card:#0f1629;        /* 카드: 배경보다 +3 단 밝기 */
-  --border:#1e2a44;      /* 경계선: 미세한 청회색 */
-  --brand:#5aa2ff;       /* 포인트 블루 */
-  --brand-600:#3b84eb;   /* hover/active */
-  --pill-bg:#0e1b33;     /* 필 배경: 짙은 네이비 */
-  --pill-text:#b8d5ff;   /* 필 텍스트 */
-  --thead:#101e38;       /* 표 헤더 배경 */
-  --theadText:#cfe2ff;   /* 표 헤더 텍스트 */
+  --bg:#0b1220;
+  --text:#e7ecf7;
+  --muted:#9aa6bd;
+  --card:#0f1629;
+  --border:#1e2a44;
+  --brand:#5aa2ff;
+  --brand-600:#3b84eb;
+  --pill-bg:#0e1b33;
+  --pill-text:#b8d5ff;
+  --thead:#101e38;
+  --theadText:#cfe2ff;
 
-  --chip-bg:#101a34;     /* 칩 배경 */
-  --chip-bd:#2a3d66;     /* 칩 외곽 */
-  --chip-sel:linear-gradient(180deg,#5aa2ff 0%,#3c78ff 100%); /* 선택 칩 */
-  --chip-wrap:#0f1629;   /* 칩 그룹 배경 */
+  --chip-bg:#101a34;
+  --chip-bd:#2a3d66;
+  --chip-sel:linear-gradient(180deg,#5aa2ff 0%,#3c78ff 100%);
+  --chip-wrap:#0f1629;
 
   --shadow:0 10px 28px rgba(7,14,28,.55);
 }
@@ -252,6 +252,36 @@ button.stat-btn{
   border:1px solid var(--border); background:var(--thead); cursor:pointer; margin:0 2px;
 }
 .muted{ color:var(--muted); font-size:0.92rem; }
+
+/* ==== 히스토리 리스트 패널 ==== */
+.history-wrap{
+  display:flex; gap:14px; align-items:flex-start; margin-top:12px; flex-wrap:wrap;
+}
+.history-panel{
+  flex:1; min-width: 340px; max-height: 260px; overflow:auto;
+  background: var(--card); border:1px solid var(--border); border-radius:12px; box-shadow: var(--shadow);
+}
+.history-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; position:sticky; top:0; background:var(--thead); color:var(--theadText);
+  border-bottom:1px solid var(--border); border-top-left-radius:12px; border-top-right-radius:12px;
+}
+.history-list{ padding:8px; }
+.history-item{
+  padding:10px 12px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; cursor:pointer;
+  display:flex; gap:10px; align-items:center; background:var(--chip-bg);
+}
+.history-item:hover{ filter:brightness(0.98); transform: translateY(-1px); }
+.history-item.active{
+  background: var(--pill-bg); border-color: var(--brand); box-shadow: 0 6px 18px rgba(58,120,255,.18);
+}
+.tag{
+  font-size:.78rem; font-weight:800; padding:4px 8px; border-radius:999px; border:1px solid var(--border);
+  background: var(--thead); color: var(--theadText); white-space:nowrap;
+}
+.hist-main{ display:flex; flex-direction:column; gap:2px; }
+.hist-title{ font-weight:800; }
+.hist-sub{ font-size:.86rem; color:var(--muted); }
   </style>
 </head>
 <body>
@@ -384,6 +414,27 @@ button.stat-btn{
       <button id="prevInningBtn" style="background:#34a853;">◀ 이전 이닝 보기</button>
       <button id="nextInningBtn" style="background:#34a853;">다음 이닝 보기 ▶</button>
     </div>
+
+    <!-- 히스토리 목록 패널 -->
+    <div class="history-wrap">
+      <div class="history-panel" aria-label="히스토리 목록">
+        <div class="history-head">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <strong>히스토리 목록</strong>
+            <span class="muted" id="historyCountLabel"></span>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="historyFilter">
+              <option value="all">전체</option>
+              <option value="current">현재 이닝만</option>
+            </select>
+            <button id="clearSelBtn" class="alt" title="선택 해제">선택 해제</button>
+            <button id="clearHistoryBtn" style="background:#ff6b6b;" title="모든 히스토리 삭제">초기화</button>
+          </div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+    </div>
   </section>
 
   <!-- 등록 선수 목록 -->
@@ -500,6 +551,26 @@ function init(){
   updateCurrentBatterInfo();
   ensureAutoPitcher();
   syncSearchInputs();
+
+  // 초기 히스토리 목록 렌더
+  renderHistoryList('all');
+
+  // 필터/선택해제/초기화 이벤트
+  document.getElementById('historyFilter').addEventListener('change', ()=>renderHistoryList());
+  document.getElementById('clearSelBtn').addEventListener('click', ()=>{
+    historyPtr = -1;
+    updateHistoryBadge();
+    renderHistoryList();
+  });
+  document.getElementById('clearHistoryBtn').addEventListener('click', ()=>{
+    if(!confirm('모든 히스토리를 삭제할까요? 되돌릴 수 없습니다.')) return;
+    duelHistory = [];
+    saveHistory();
+    historyPtr = -1;
+    updateHistoryBadge();
+    renderHistoryList();
+    alert('히스토리를 초기화했습니다.');
+  });
 }
 
 /* ==== helpers ==== */
@@ -521,12 +592,86 @@ function updateHistoryBadge(){
   const total = duelHistory.length;
   const ptrText = (historyPtr===-1) ? '최신' : `${historyPtr+1}/${total}`;
   document.getElementById('historyBadge').textContent = `히스토리 ${total}건 · 포인터 ${ptrText}`;
+  renderHistoryList(); // active 표시 갱신
 }
 function updateCurrentBatterInfo(){
   const b = getCurrentBatter();
   document.getElementById('currentBatterInfo').textContent =
     b ? `현재 타자: ${b}` : '현재 타자: (라인업 비어 있음)';
 }
+
+/* ==== 히스토리 목록 ==== */
+function timeAgo(ts){
+  if(!ts) return '';
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff/1000);
+  if(s<60) return `${s}s 전`;
+  const m = Math.floor(s/60);
+  if(m<60) return `${m}m 전`;
+  const h = Math.floor(m/60);
+  if(h<24) return `${h}h 전`;
+  const d = Math.floor(h/24);
+  return `${d}d 전`;
+}
+function formatOutcome(o){
+  if(!o) return '';
+  const parts=[];
+  if(o.hitterEvt) parts.push(`타자 ${o.hitterEvt}`);
+  if(o.rbi && o.rbi>0) parts.push(`RBI ${o.rbi}`);
+  if(o.pitcherEvt) parts.push(`투수 ${o.pitcherEvt}`);
+  if(o.pitcherDecision) parts.push(o.pitcherDecision);
+  if(o.pitchCount) parts.push(`투구수 +${o.pitchCount}`);
+  if(o.inningsDelta) parts.push(`이닝 +${o.inningsDelta}`);
+  return parts.join(' · ');
+}
+/** filter: 'all' | 'current' */
+function renderHistoryList(filterVal){
+  const listEl = document.getElementById('historyList');
+  const countEl = document.getElementById('historyCountLabel');
+  if(!listEl) return;
+  const f = filterVal || document.getElementById('historyFilter')?.value || 'all';
+
+  let items = duelHistory.map((r,idx)=>({r, idx})).reverse(); // 최신 위
+  if(f==='current'){
+    items = items.filter(x => x.r.inning===inning && x.r.half===half);
+  }
+
+  countEl.textContent = `(${items.length}건)`;
+
+  if(items.length===0){
+    listEl.innerHTML = `<div class="muted" style="padding:10px 12px;">표시할 히스토리가 없습니다.</div>`;
+    return;
+  }
+
+  const activeIdx = (historyPtr===-1) ? -1 : historyPtr;
+  listEl.innerHTML = items.map(({r, idx})=>{
+    const title = `${r.inning}회 ${r.half} · ${r.offenseTeam} 공격`;
+    const sub   = `${r.hitterName}  vs  ${r.pitcherName}`;
+    const res   = formatOutcome(r.outcome);
+    const isActive = (activeIdx===idx);
+    return `
+      <div class="history-item ${isActive?'active':''}" data-idx="${idx}" title="클릭하여 불러오기">
+        <span class="tag">${timeAgo(r.ts)||'—'}</span>
+        <div class="hist-main">
+          <div class="hist-title">${title}</div>
+          <div class="hist-sub">${sub}</div>
+          <div class="hist-sub">${res || ''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+// 목록 클릭 -> 해당 기록 로드
+document.addEventListener('click', (e)=>{
+  const it = e.target.closest('.history-item');
+  if(!it) return;
+  const idx = parseInt(it.dataset.idx, 10);
+  if(isNaN(idx)) return;
+  historyPtr = idx;
+  loadFromHistory(duelHistory[idx]);
+  updateHistoryBadge();
+  syncSearchInputs();
+});
 
 /* ==== 선공/초기화 ==== */
 function setFirstTeam(team, persist=true){
@@ -651,7 +796,7 @@ function renderPlayerList(){
     html += keys.map(k=>`
       <td class="buttons-cell">
         <button class="stat-btn" data-idx="${idx}" data-stat="${k}" data-delta="1">▲</button>
-        <button class="stat-btn" data-idx="${idx}" data-stat="${k}" data-delta="-1">▼</button>
+        <button class="stat-btn" data-vidx="${idx}" data-stat="${k}" data-delta="-1">▼</button>
       </td>`).join('');
     html += `
       <td class="buttons-cell">
@@ -963,8 +1108,8 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
 
   const pitchCountDelta = Math.max(0, parseFloat(document.getElementById('pitcherPitchCountInput').value)||0);
   const inningsDelta    = Math.max(0, parseFloat(document.getElementById('pitcherInningsInput').value)||0);
-  const g1 = getSelectedValue(document.getElementById('pitcherGroup1'));
-  const g2 = getSelectedValue(document.getElementById('pitcherGroup2'));
+  const g1 = getSelectedValue(document.getElementById('pitcherGroup1')); // 투수 이벤트
+  const g2 = getSelectedValue(document.getElementById('pitcherGroup2')); // 승/패/세/홀
 
   pitcher.stats['투구수'] = (pitcher.stats['투구수']||0) + pitchCountDelta;
   pitcher.stats['이닝']   = (pitcher.stats['이닝']  ||0) + inningsDelta;
@@ -978,9 +1123,20 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
 
   savePlayers(players);
 
-  duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now()});
+  // 결과 요약을 구조적으로 보관
+  const outcome = {
+    hitterEvt: hitterEvt || '',
+    rbi: rbiDelta || 0,
+    pitcherEvt: g1 || '',
+    pitcherDecision: g2 || '',
+    pitchCount: pitchCountDelta || 0,
+    inningsDelta: inningsDelta || 0
+  };
+
+  duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now(), outcome});
   saveHistory();
-  historyPtr=-1; updateHistoryBadge();
+  historyPtr=-1; 
+  updateHistoryBadge(); // 목록도 함께 갱신
 
   if(lu.length>0){
     setCurrentIdx((currentIdx()+1)%lu.length);
@@ -994,6 +1150,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   }
   ensureAutoPitcher(); syncSearchInputs();
 
+  // 입력값 리셋
   document.getElementById('pitcherPitchCountInput').value = 0;
   document.getElementById('pitcherInningsInput').value = 0;
   clearChipSelection(document.getElementById('pitcherGroup1'));
@@ -1015,6 +1172,7 @@ document.getElementById('endHalfBtn').addEventListener('click', ()=>{
   ensureAutoPitcher();
   syncSearchInputs();
   alert(`이닝 전환: ${inning}회 ${half} · 공격 ${offenseTeam}`);
+  renderHistoryList();
 });
 document.getElementById('prevInningBtn').addEventListener('click', ()=>{
   if(viewHalf==='말'){ viewHalf='초'; viewInning = Math.max(1, viewInning-1); }
@@ -1033,6 +1191,8 @@ function jumpToLastPAOf(inn, hf){
   loadFromHistory(rec);
   syncSearchInputs();
   alert(`${inn}회 ${hf} 마지막 타석을 불러왔습니다.`);
+  const idx = duelHistory.indexOf(rec);
+  if(idx>=0){ historyPtr = idx; updateHistoryBadge(); }
 }
 
 /* ==== 시작 ==== */
