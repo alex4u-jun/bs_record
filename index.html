@@ -284,7 +284,7 @@ button.stat-btn{
 
 /* 고정 상단/하단 이동 버튼 */
 #backToEditorBtn{
-  position:fixed; left:16px; bottom:16px; z-index:1000;
+  position:fixed; right:16px; bottom:16px; z-index:1000;  /* ← 오른쪽 아래로 이동 */
   font-size:.85rem; padding:8px 10px; border-radius:10px; opacity:.92;
   box-shadow: var(--shadow);
 }
@@ -495,7 +495,7 @@ button.stat-btn{
     </div>
   </div>
 
-  <!-- 항상 고정: 에디터로 올라가기 -->
+  <!-- 항상 고정: 에디터로 올라가기 (오른쪽 아래) -->
   <button id="backToEditorBtn" title="투수/타자 선택 및 기록으로 가기">▲ 기록 입력으로</button>
 
 <script>
@@ -605,7 +605,6 @@ function init(){
   });
   document.getElementById('clearHistoryBtn').addEventListener('click', ()=>{
     if(!confirm('모든 히스토리를 삭제할까요? 되돌릴 수 없습니다.')) return;
-    // 목록만 초기화(통계는 유지)
     duelHistory = [];
     saveHistory();
     historyPtr = -1;
@@ -633,6 +632,18 @@ function init(){
   document.getElementById('pitcherGroup1').addEventListener('click', ()=>{
     setTimeout(()=>syncHitterFromPitcherResult(),0);
   });
+
+  // 타자 결과칩(삼진) → 투수 자동 동기화 (요청 1)
+  document.getElementById('hitterGroup').addEventListener('click', ()=>{
+    setTimeout(()=>{
+      const v = getSelectedValue(document.getElementById('hitterGroup'));
+      if(v==='삼진'){ selectChipByValue(document.getElementById('pitcherGroup1'),'삼진'); }
+      // (원한다면 볼넷도 양방향 동기화 가능)
+    },0);
+  });
+
+  // 득점/자책점 상호 동기화 (요청 3)
+  setupRunERLink();
 }
 
 /* ==== helpers ==== */
@@ -702,7 +713,6 @@ function formatOutcome(o){
   if(o.er) parts.push(`자책점 +${o.er}`);
   return parts.join(' · ');
 }
-/** filter: 'all' | 'current' */
 function renderHistoryList(filterVal){
   const listEl = document.getElementById('historyList');
   const countEl = document.getElementById('historyCountLabel');
@@ -980,6 +990,34 @@ function syncHitterFromPitcherResult(val){
   }
 }
 
+/* ==== 득점/자책점 상호 동기화 ==== */
+let _syncingRunER = false;
+function setupRunERLink(){
+  const runInput = document.getElementById('hitterRUNInput');
+  const erInput  = document.getElementById('pitcherERInput');
+  if(!runInput || !erInput) return;
+
+  const link = (src, dst)=>{
+    src.addEventListener('input', ()=>{
+      if(_syncingRunER) return;
+      _syncingRunER = true;
+      const v = Math.max(0, parseInt(src.value||'0',10)||0);
+      dst.value = v;
+      _syncingRunER = false;
+    });
+    src.addEventListener('change', ()=>{
+      if(_syncingRunER) return;
+      _syncingRunER = true;
+      const v = Math.max(0, parseInt(src.value||'0',10)||0);
+      dst.value = v;
+      _syncingRunER = false;
+    });
+  };
+  // 양방향 연결: 득점 ↔ 자책점
+  link(runInput, erInput);
+  link(erInput, runInput);
+}
+
 /* ==== 커스텀 스피너 ==== */
 document.addEventListener('click',(e)=>{
   const btn = e.target.closest('.spin-btn');
@@ -990,6 +1028,7 @@ document.addEventListener('click',(e)=>{
   const cur = parseFloat(input.value||'0')||0;
   const next = (btn.dataset.spin==='inc') ? cur+step : Math.max(0,cur-step);
   input.value = (step<1?next.toFixed(1):next.toFixed(0));
+  input.dispatchEvent(new Event('input'));
   input.dispatchEvent(new Event('change'));
 });
 
@@ -1201,7 +1240,7 @@ function applyOutcomeToUI(outcome){
   selectChipByValue(document.getElementById('pitcherGroup1'), outcome.pitcherEvt||'');
   selectChipByValue(document.getElementById('pitcherGroup2'), outcome.pitcherDecision||'');
   selectChipByValue(document.getElementById('hitterGroup'),   outcome.hitterEvt||'');
-  // 삼진/볼넷 자동 동기화
+  // 칩/숫자 동기화 보조
   syncHitterFromPitcherResult(outcome.pitcherEvt);
 }
 document.getElementById('historyBackBtn').addEventListener('click', ()=>{
@@ -1356,7 +1395,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   applyOutcomeToStats(pitcherName, hitterName, outcome, +1);
   savePlayers(players);
 
-  // 히스토리 축적
+  // 히스토리 축적 (투수 vs 타자, 득점/자책점 포함)
   duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now(), outcome});
   saveHistory();
   historyPtr=-1;
@@ -1389,7 +1428,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   renderPlayerList();
 });
 
-/* 이름 클릭 → 등록 선수 카드로 스크롤 */
+/* 이름 클릭 → 등록 선수 카드로 스크롤 (요청 2) */
 function scrollToPlayerFromDisplay(type){
   const id = (type==='투수'?'pitcherNameDisplay':'hitterNameDisplay');
   const txt = (document.getElementById(id).textContent||'').split(' (')[0].trim();
