@@ -187,7 +187,7 @@ input[type="text"]:focus, select:focus,
   border-radius: 12px;
   margin-top: 8px;
 }
-#pitcherNameDisplay, #hitterNameDisplay{ font-weight:900; color:var(--brand); margin-bottom:10px; }
+#pitcherNameDisplay, #hitterNameDisplay{ font-weight:900; color:var(--brand); margin-bottom:10px; cursor:pointer; text-decoration: underline dashed; }
 
 /* 칩(단일선택) */
 .group-title{ font-weight:800; color:var(--text); margin:10px 0 6px; }
@@ -281,6 +281,20 @@ button.stat-btn{
 .hist-main{ display:flex; flex-direction:column; gap:2px; }
 .hist-title{ font-weight:800; }
 .hist-sub{ font-size:.86rem; color:var(--muted); }
+
+/* 고정 상단/하단 이동 버튼 */
+#backToEditorBtn{
+  position:fixed; left:16px; bottom:16px; z-index:1000;
+  font-size:.85rem; padding:8px 10px; border-radius:10px; opacity:.92;
+  box-shadow: var(--shadow);
+}
+
+/* 하이라이트 효과 */
+.highlight{
+  outline: 3px solid var(--brand);
+  background: var(--pill-bg);
+  transition: outline .3s ease;
+}
   </style>
 </head>
 <body>
@@ -307,7 +321,7 @@ button.stat-btn{
 
   <!-- === 투타 대결 + 라인업 + 이닝 === -->
   <section class="section" id="duelSection">
-    <!-- 상단 컨트롤바 -->
+    <!-- 상단 제어바 -->
     <div class="controlbar">
       <div class="left-controls">
         <span class="pill" id="inningBadge">1회 초 · 공격: Leaders</span>
@@ -345,6 +359,7 @@ button.stat-btn{
       <span class="muted" id="currentBatterInfo">현재 타자: -</span>
     </div>
 
+    <div id="editorTop"></div>
     <!-- 투수/타자 입력 그리드 -->
     <div class="duel-grid">
       <!-- 투수 -->
@@ -353,7 +368,7 @@ button.stat-btn{
         <input type="text" id="pitcherSearch" placeholder="투수 이름 검색" autocomplete="off" />
         <div id="pitcherSearchResults"></div>
         <div id="pitcherEditSection" style="display:none;">
-          <div id="pitcherNameDisplay"></div>
+          <div id="pitcherNameDisplay" title="등록 선수 목록에서 위치 보기"></div>
 
           <div class="num-row">
             <label>투구수(+)</label>
@@ -369,6 +384,14 @@ button.stat-btn{
               <button class="spin-btn" data-spin="dec" data-target="pitcherInningsInput">▼</button>
               <input id="pitcherInningsInput" class="spin-input" type="number" min="0" step="0.1" value="0" />
               <button class="spin-btn" data-spin="inc" data-target="pitcherInningsInput">▲</button>
+            </div>
+          </div>
+          <div class="num-row">
+            <label>자책점(+)</label>
+            <div class="spin-wrap">
+              <button class="spin-btn" data-spin="dec" data-target="pitcherERInput">▼</button>
+              <input id="pitcherERInput" class="spin-input" type="number" min="0" step="1" value="0" />
+              <button class="spin-btn" data-spin="inc" data-target="pitcherERInput">▲</button>
             </div>
           </div>
 
@@ -388,7 +411,7 @@ button.stat-btn{
         <input type="text" id="hitterSearch" placeholder="(단독 선택용) 타자 이름 검색" autocomplete="off" />
         <div id="hitterSearchResults"></div>
         <div id="hitterEditSection" style="display:none;">
-          <div id="hitterNameDisplay"></div>
+          <div id="hitterNameDisplay" title="등록 선수 목록에서 위치 보기"></div>
 
           <div class="group-title">이번 결과(타자) – 택1</div>
           <div id="hitterGroup" class="chip-group" role="group" aria-label="Hitter Result Group"></div>
@@ -399,6 +422,14 @@ button.stat-btn{
               <button class="spin-btn" data-spin="dec" data-target="hitterRBIInput">▼</button>
               <input id="hitterRBIInput" class="spin-input" type="number" min="0" step="1" value="0" />
               <button class="spin-btn" data-spin="inc" data-target="hitterRBIInput">▲</button>
+            </div>
+          </div>
+          <div class="num-row">
+            <label>득점(+)</label>
+            <div class="spin-wrap">
+              <button class="spin-btn" data-spin="dec" data-target="hitterRUNInput">▼</button>
+              <input id="hitterRUNInput" class="spin-input" type="number" min="0" step="1" value="0" />
+              <button class="spin-btn" data-spin="inc" data-target="hitterRUNInput">▲</button>
             </div>
           </div>
         </div>
@@ -443,7 +474,7 @@ button.stat-btn{
   </section>
 
   <!-- 등록 선수 목록 -->
-  <section class="section">
+  <section class="section" id="playerListSection">
     <h2 style="margin-top:0; color:var(--brand);">등록 선수 목록</h2>
     <div class="player-list" id="playerList"></div>
   </section>
@@ -463,6 +494,9 @@ button.stat-btn{
       <button id="importJsonBtn" style="margin-top: 8px; background: #fbbc05;">JSON 불러오기</button>
     </div>
   </div>
+
+  <!-- 항상 고정: 에디터로 올라가기 -->
+  <button id="backToEditorBtn" title="투수/타자 선택 및 기록으로 가기">▲ 기록 입력으로</button>
 
 <script>
 /* ==== 테마 토글 ==== */
@@ -499,7 +533,7 @@ let editIndex = -1;      // 편집 중인 히스토리 인덱스
 let viewInning = 1;
 let viewHalf = '초';
 
-const hitterStatsHeaders  = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점'];
+const hitterStatsHeaders  = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','타점','득점'];
 const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
 
 /* ==== Storage helpers ==== */
@@ -558,8 +592,10 @@ function init(){
   ensureAutoPitcher();
   syncSearchInputs();
 
+  // 초기 히스토리 목록 렌더
   renderHistoryList('all');
 
+  // 필터/선택해제/초기화 이벤트
   document.getElementById('historyFilter').addEventListener('change', ()=>renderHistoryList());
   document.getElementById('clearSelBtn').addEventListener('click', ()=>{
     historyPtr = -1;
@@ -579,9 +615,24 @@ function init(){
     alert('히스토리를 초기화했습니다.');
   });
 
+  // 편집 버튼 이벤트
   document.getElementById('updateRecordBtn').addEventListener('click', onUpdateRecord);
   document.getElementById('deleteRecordBtn').addEventListener('click', onDeleteRecord);
   document.getElementById('cancelEditBtn').addEventListener('click', exitEditMode);
+
+  // 이름 클릭 → 등록 선수 위치로 스크롤
+  document.getElementById('pitcherNameDisplay').addEventListener('click', ()=>scrollToPlayerFromDisplay('투수'));
+  document.getElementById('hitterNameDisplay').addEventListener('click', ()=>scrollToPlayerFromDisplay('타자'));
+
+  // 고정: 에디터로 올라가기
+  document.getElementById('backToEditorBtn').addEventListener('click', ()=>{
+    document.getElementById('editorTop')?.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  // 투수 결과칩(삼진/볼넷) → 타자 자동 동기화
+  document.getElementById('pitcherGroup1').addEventListener('click', ()=>{
+    setTimeout(()=>syncHitterFromPitcherResult(),0);
+  });
 }
 
 /* ==== helpers ==== */
@@ -603,7 +654,7 @@ function updateHistoryBadge(){
   const total = duelHistory.length;
   const ptrText = (historyPtr===-1) ? '최신' : `${historyPtr+1}/${total}`;
   document.getElementById('historyBadge').textContent = `히스토리 ${total}건 · 포인터 ${ptrText}`;
-  renderHistoryList();
+  renderHistoryList(); // active 표시 갱신
 }
 function updateCurrentBatterInfo(){
   const b = getCurrentBatter();
@@ -642,13 +693,16 @@ function formatOutcome(o){
   if(!o) return '';
   const parts=[];
   if(o.hitterEvt) parts.push(`타자 ${o.hitterEvt}`);
-  if(o.rbi && o.rbi>0) parts.push(`RBI ${o.rbi}`);
+  if(o.rbi && o.rbi>0) parts.push(`타점 +${o.rbi}`);
+  if(o.run && o.run>0) parts.push(`득점 +${o.run}`);
   if(o.pitcherEvt) parts.push(`투수 ${o.pitcherEvt}`);
   if(o.pitcherDecision) parts.push(o.pitcherDecision);
   if(o.pitchCount) parts.push(`투구수 +${o.pitchCount}`);
   if(o.inningsDelta) parts.push(`이닝 +${o.inningsDelta}`);
+  if(o.er) parts.push(`자책점 +${o.er}`);
   return parts.join(' · ');
 }
+/** filter: 'all' | 'current' */
 function renderHistoryList(filterVal){
   const listEl = document.getElementById('historyList');
   const countEl = document.getElementById('historyCountLabel');
@@ -686,14 +740,16 @@ function renderHistoryList(filterVal){
   }).join('');
 }
 
-/* == 히스토리 클릭 -> 로드 + 편집 == */
+// 목록 클릭 -> 해당 기록 로드 + 편집 모드 + UI에 값 반영
 document.addEventListener('click', (e)=>{
   const it = e.target.closest('.history-item');
   if(!it) return;
   const idx = parseInt(it.dataset.idx, 10);
   if(isNaN(idx)) return;
   historyPtr = idx;
-  loadFromHistory(duelHistory[idx]);
+  const rec = duelHistory[idx];
+  loadFromHistory(rec);
+  applyOutcomeToUI(rec.outcome);
   setEditMode(idx);
   updateHistoryBadge();
   syncSearchInputs();
@@ -728,7 +784,6 @@ document.getElementById('resetInningBtn').addEventListener('click', ()=>{
 /* === 투수 에디터 업데이트 유틸 === */
 function updatePitcherEditorByName(name, team){
   if(!name) return false;
-  // 같은 팀에서 찾고 없으면 전체에서 이름으로 탐색
   let p = players.find(x=>x.type==='투수' && x.name===name && x.team===team);
   if(!p) p = players.find(x=>x.type==='투수' && x.name===name);
   if(!p) return false;
@@ -813,6 +868,10 @@ playerListDiv.addEventListener('click', e=>{
   }
 });
 
+function containerIdFor(name, type){
+  return `player-card-${type}-${encodeURIComponent(name)}`;
+}
+
 function renderPlayerList(){
   playerListDiv.innerHTML = '';
   if(players.length===0){
@@ -821,6 +880,7 @@ function renderPlayerList(){
   }
   players.forEach((player, idx)=>{
     const container = document.createElement('div');
+    container.id = containerIdFor(player.name, player.type);
     const keys = Object.keys(player.stats);
     let html = `<h3>${player.name} (${player.team} / ${player.type}) <button class="delete-btn" data-idx="${idx}">삭제</button></h3>`;
     html += '<table><thead><tr>'+keys.map(k=>`<th>${k}</th>`).join('')+'<th>MVP 횟수</th></tr></thead><tbody><tr>';
@@ -880,7 +940,7 @@ document.getElementById('importJsonBtn').addEventListener('click', async ()=>{
   }catch(e){ alert('불러오기 실패: '+e.message); }
 });
 
-/* ==== 단일 선택(칩) 유틸 ==== */
+/* ==== 칩 유틸 ==== */
 function renderChipGroup(rootEl, options){
   rootEl.innerHTML = '';
   options.forEach(opt=>{
@@ -903,8 +963,21 @@ function getSelectedValue(rootEl){
   const sel = rootEl.querySelector('.chip.selected');
   return sel ? sel.dataset.value : '';
 }
+function selectChipByValue(rootEl, value){
+  if(!rootEl) return;
+  [...rootEl.querySelectorAll('.chip')].forEach(c=>c.classList.remove('selected'));
+  if(!value) return;
+  const el = rootEl.querySelector(`.chip[data-value="${value}"]`);
+  if(el) el.classList.add('selected');
+}
 function clearChipSelection(rootEl){
   rootEl && [...rootEl.querySelectorAll('.chip')].forEach(c=>c.classList.remove('selected'));
+}
+function syncHitterFromPitcherResult(val){
+  const v = val || getSelectedValue(document.getElementById('pitcherGroup1'));
+  if(v==='삼진' || v==='볼넷'){
+    selectChipByValue(document.getElementById('hitterGroup'), v);
+  }
 }
 
 /* ==== 커스텀 스피너 ==== */
@@ -928,12 +1001,14 @@ function renderPitcherEditor(pitcher){
   renderChipGroup(document.getElementById('pitcherGroup2'), ['승리','패배','홀드','세이브']);
   document.getElementById('pitcherPitchCountInput').value = 0;
   document.getElementById('pitcherInningsInput').value = 0;
+  document.getElementById('pitcherERInput').value = 0;
 }
 function renderHitterEditor(hitter){
   document.getElementById('hitterNameDisplay').textContent = `${hitter.name} (${hitter.team})`;
   renderChipGroup(document.getElementById('hitterGroup'),
     ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃']);
   document.getElementById('hitterRBIInput').value = 0;
+  document.getElementById('hitterRUNInput').value = 0;
 }
 
 /* ==== 검색/선택 ==== */
@@ -1036,10 +1111,8 @@ function buildLineupEditor(team, mountId){
     const o=getLineup(t);
     o.pitcher = pitcherField.value.trim();
     saveLineup(t, o);
-    // 현재 수비팀의 라인업 투수를 바꾼 경우 ⇒ 에디터도 즉시 반영
     if(t===defenseTeam){
       if(!updatePitcherEditorByName(o.pitcher, t)){
-        // 이름이 비었거나 매칭 실패 시 자동 보정 시도
         applyPitcherFromDefenseLineup();
       }
       syncSearchInputs();
@@ -1086,6 +1159,7 @@ document.getElementById('prevBatterBtn').addEventListener('click', ()=>{
   if(historyPtr===-1) historyPtr = list.length;
   historyPtr = Math.max(0, historyPtr-1);
   loadFromHistory(list[historyPtr]);
+  applyOutcomeToUI(list[historyPtr].outcome);
   setEditMode(historyPtr);
   updateHistoryBadge();
   syncSearchInputs();
@@ -1115,11 +1189,28 @@ function loadFromHistory(rec){
     }
   }
 }
+function applyOutcomeToUI(outcome){
+  if(!outcome) return;
+  // 숫자 입력
+  document.getElementById('pitcherPitchCountInput').value = outcome.pitchCount || 0;
+  document.getElementById('pitcherInningsInput').value   = outcome.inningsDelta || 0;
+  document.getElementById('pitcherERInput').value        = outcome.er || 0;
+  document.getElementById('hitterRBIInput').value        = outcome.rbi || 0;
+  document.getElementById('hitterRUNInput').value        = outcome.run || 0;
+  // 칩 선택
+  selectChipByValue(document.getElementById('pitcherGroup1'), outcome.pitcherEvt||'');
+  selectChipByValue(document.getElementById('pitcherGroup2'), outcome.pitcherDecision||'');
+  selectChipByValue(document.getElementById('hitterGroup'),   outcome.hitterEvt||'');
+  // 삼진/볼넷 자동 동기화
+  syncHitterFromPitcherResult(outcome.pitcherEvt);
+}
 document.getElementById('historyBackBtn').addEventListener('click', ()=>{
   if(duelHistory.length===0) return alert('히스토리 없음');
   if(historyPtr===-1) historyPtr = duelHistory.length-1;
   else historyPtr = Math.max(0, historyPtr-1);
-  loadFromHistory(duelHistory[historyPtr]);
+  const rec = duelHistory[historyPtr];
+  loadFromHistory(rec);
+  applyOutcomeToUI(rec.outcome);
   setEditMode(historyPtr);
   updateHistoryBadge(); syncSearchInputs();
 });
@@ -1128,7 +1219,9 @@ document.getElementById('historyForwardBtn').addEventListener('click', ()=>{
   if(historyPtr===-1) return;
   historyPtr++;
   if(historyPtr>=duelHistory.length){ historyPtr=-1; exitEditMode(); updateHistoryBadge(); syncSearchInputs(); return; }
-  loadFromHistory(duelHistory[historyPtr]);
+  const rec = duelHistory[historyPtr];
+  loadFromHistory(rec);
+  applyOutcomeToUI(rec.outcome);
   setEditMode(historyPtr);
   updateHistoryBadge(); syncSearchInputs();
 });
@@ -1143,12 +1236,14 @@ function applyOutcomeToStats(pitcherName, hitterName, outcome, sign){
   if(p){
     p.stats['투구수'] = (p.stats['투구수']||0) + s(outcome.pitchCount);
     p.stats['이닝']   = (p.stats['이닝']  ||0) + s(outcome.inningsDelta);
+    p.stats['자책점'] = (p.stats['자책점']||0) + s(outcome.er);
     if(outcome.pitcherEvt){ p.stats[outcome.pitcherEvt] = (p.stats[outcome.pitcherEvt]||0) + s(1); }
     if(outcome.pitcherDecision){ p.stats[outcome.pitcherDecision] = (p.stats[outcome.pitcherDecision]||0) + s(1); }
   }
   if(h){
     if(outcome.hitterEvt){ h.stats[outcome.hitterEvt] = (h.stats[outcome.hitterEvt]||0) + s(1); }
     if(outcome.rbi){ h.stats['타점'] = (h.stats['타점']||0) + s(outcome.rbi); }
+    if(outcome.run){ h.stats['득점'] = (h.stats['득점']||0) + s(outcome.run); }
   }
 }
 
@@ -1156,18 +1251,22 @@ function applyOutcomeToStats(pitcherName, hitterName, outcome, sign){
 function readCurrentOutcomeFromUI(){
   const pitchCountDelta = Math.max(0, parseFloat(document.getElementById('pitcherPitchCountInput').value)||0);
   const inningsDelta    = Math.max(0, parseFloat(document.getElementById('pitcherInningsInput').value)||0);
+  const erDelta         = Math.max(0, parseInt(document.getElementById('pitcherERInput').value)||0);
   const g1 = getSelectedValue(document.getElementById('pitcherGroup1'));
   const g2 = getSelectedValue(document.getElementById('pitcherGroup2'));
   const hitterEvt = getSelectedValue(document.getElementById('hitterGroup'));
   const rbiDelta  = Math.max(0, parseInt(document.getElementById('hitterRBIInput').value)||0);
+  const runDelta  = Math.max(0, parseInt(document.getElementById('hitterRUNInput').value)||0);
 
   return {
     hitterEvt: hitterEvt || '',
     rbi: rbiDelta || 0,
+    run: runDelta || 0,
     pitcherEvt: g1 || '',
     pitcherDecision: g2 || '',
     pitchCount: pitchCountDelta || 0,
-    inningsDelta: inningsDelta || 0
+    inningsDelta: inningsDelta || 0,
+    er: erDelta || 0
   };
 }
 
@@ -1219,6 +1318,7 @@ function onDeleteRecord(){
   duelHistory.splice(editIndex,1);
   saveHistory();
 
+  // 상태 정리
   historyPtr = -1;
   exitEditMode();
 
@@ -1260,7 +1360,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now(), outcome});
   saveHistory();
   historyPtr=-1;
-  updateHistoryBadge();
+  updateHistoryBadge(); // 목록 갱신 포함
 
   // 다음 타자 이동
   if(lu.length>0){
@@ -1278,14 +1378,31 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   // 입력값 리셋
   document.getElementById('pitcherPitchCountInput').value = 0;
   document.getElementById('pitcherInningsInput').value = 0;
+  document.getElementById('pitcherERInput').value = 0;
   clearChipSelection(document.getElementById('pitcherGroup1'));
   clearChipSelection(document.getElementById('pitcherGroup2'));
   clearChipSelection(document.getElementById('hitterGroup'));
   document.getElementById('hitterRBIInput').value = 0;
+  document.getElementById('hitterRUNInput').value = 0;
 
   alert('대결 기록이 저장되었습니다. (증분 반영 완료)');
   renderPlayerList();
 });
+
+/* 이름 클릭 → 등록 선수 카드로 스크롤 */
+function scrollToPlayerFromDisplay(type){
+  const id = (type==='투수'?'pitcherNameDisplay':'hitterNameDisplay');
+  const txt = (document.getElementById(id).textContent||'').split(' (')[0].trim();
+  if(!txt) return;
+  const card = document.getElementById(containerIdFor(txt, type));
+  if(card){
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+    card.classList.add('highlight');
+    setTimeout(()=>card.classList.remove('highlight'), 2000);
+  }else{
+    document.getElementById('playerListSection')?.scrollIntoView({behavior:'smooth'});
+  }
+}
 
 /* ==== 이닝 종료 & 이전/다음 이닝 보기 ==== */
 document.getElementById('endHalfBtn').addEventListener('click', ()=>{
@@ -1314,6 +1431,7 @@ function jumpToLastPAOf(inn, hf){
   if(list.length===0){ alert(`${inn}회 ${hf} 기록이 없습니다.`); updateHistoryBadge(); return; }
   const rec = list[list.length-1];
   loadFromHistory(rec);
+  applyOutcomeToUI(rec.outcome);
   const idx = duelHistory.indexOf(rec);
   if(idx>=0){ historyPtr = idx; setEditMode(idx); updateHistoryBadge(); }
   syncSearchInputs();
