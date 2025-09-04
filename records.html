@@ -860,15 +860,14 @@ td.player-name { color: var(--link); cursor: pointer; text-decoration: underline
       clearActiveMenu();
       e.target.classList.add('active');
       const view = e.target.dataset.view;
-      if (view === 'h2h') {
-        rankingContent.style.display='none';
-        gamesSection.style.display='none';
-        h2hSection.style.display='block';
-      } else if (view === 'games') {
-        rankingContent.style.display='none';
-        h2hSection.style.display='none';
-        gamesSection.style.display='block';
-      }
+   rankingContent.style.display = 'block';
+     if (view === 'h2h') {
+       gamesSection.style.display = 'none';
+       h2hSection.style.display = 'block';
+     } else if (view === 'games') {
+       h2hSection.style.display = 'none';
+       gamesSection.style.display = 'block';
+     }
     }
   };
 
@@ -1067,4 +1066,5 @@ td.player-name { color: var(--link); cursor: pointer; text-decoration: underline
 
 </body>
 </html>
+
 
