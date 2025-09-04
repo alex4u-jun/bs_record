@@ -122,7 +122,7 @@ form {
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
-input[type="text"], select {
+input[type="text"], select, input[type="date"] {
   padding: 10px 12px;
   font-size: 1rem;
   border: 1.5px solid var(--border);
@@ -135,7 +135,7 @@ input[type="text"], select {
   transition: box-shadow .2s ease, border-color .2s ease;
 }
 input[type="text"]:focus, select:focus,
-.spin-input:focus {
+.spin-input:focus, input[type="date"]:focus {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(90,162,255,.28);
@@ -163,13 +163,20 @@ input[type="text"]:focus, select:focus,
   padding:6px 12px; border-radius:999px; font-weight:800; border:1px solid var(--border);
 }
 
+/* 경기 설정 바 */
+.gamebar{
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0 14px;
+  background: var(--card); border:1px dashed var(--border); padding:10px 12px; border-radius:12px;
+}
+#gameBadge{ background: #eaf5ff; color:#196ae5; }
+
 /* 라인업 2열 */
 .lineup-2col{ display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
 .lineup-card{
   border:1px solid var(--border); border-radius:14px; padding:14px; background:var(--card);
   box-shadow: var(--shadow);
 }
-.lineup-title{ font-weight:900; color:var(--brand); margin-bottom:8px; letter-spacing:.2px; }
+.lineup-title{ font-weight:900; color: var(--brand); margin-bottom:8px; letter-spacing:.2px; }
 .lineup-table{ width:100%; border-collapse:collapse; min-width:420px; }
 .lineup-table th, .lineup-table td{
   border:1px solid var(--border); padding:8px 10px; text-align:center; background:transparent; color:var(--text);
@@ -338,6 +345,7 @@ button.stat-btn{
         <span class="pill" id="inningBadge">1회 초 · 공격: Leaders</span>
         <span class="pill" id="historyBadge">히스토리 0건 · 포인터 최신</span>
         <span class="pill" id="editBadge" style="display:none; background:#fff0f0; color:#d33;">편집 모드</span>
+        <span class="pill" id="gameBadge" title="현재 경기" style="display:none;"></span>
       </div>
       <div class="right-controls">
         <label for="firstTeamSel" class="muted">선공 팀:</label>
@@ -348,6 +356,29 @@ button.stat-btn{
         <button id="applyFirstTeamBtn" class="alt">선공 적용</button>
         <button id="resetInningBtn" class="warn">이닝 초기화</button>
       </div>
+    </div>
+
+    <!-- 경기 설정 바 -->
+    <div class="gamebar">
+      <label class="muted">경기 날짜</label>
+      <input type="date" id="gameDate">
+      <label class="muted">홈</label>
+      <select id="homeTeamSel">
+        <option value="Leaders">Leaders</option>
+        <option value="CSIA">CSIA</option>
+      </select>
+      <label class="muted">원정</label>
+      <select id="awayTeamSel">
+        <option value="Leaders">Leaders</option>
+        <option value="CSIA">CSIA</option>
+      </select>
+      <button id="startGameBtn" class="success">+ 새 경기 시작</button>
+
+      <span style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+        <label class="muted">경기 선택</label>
+        <select id="gameSelect"><option value="">(선택)</option></select>
+        <button id="selectGameBtn" class="alt">불러오기</button>
+      </span>
     </div>
 
     <!-- 라인업: 양쪽 동시 표시 -->
@@ -481,9 +512,10 @@ button.stat-btn{
             <span class="muted" id="historyCountLabel"></span>
           </div>
           <div style="display:flex; gap:6px; align-items:center;">
-            <select id="historyFilter">
+            <select id="historyFilter" title="필터">
               <option value="all">전체</option>
               <option value="current">현재 이닝만</option>
+              <option value="game">현재 경기</option>
             </select>
             <button id="clearSelBtn" class="alt" title="선택 해제">선택 해제</button>
             <button id="clearHistoryBtn" class="danger" title="모든 히스토리 삭제">초기화</button>
@@ -509,10 +541,19 @@ button.stat-btn{
     <button id="selectMvpBtn">MVP 선정</button>
     <p id="mvpMessage" class="muted"></p>
 
-    <button id="exportJsonBtn" class="success" style="margin-top: 12px;">JSON 파일로 내보내기</button>
-    <div style="margin-top:12px;">
+    <div style="margin-top: 16px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <button id="exportJsonBtn" class="success">players.json 내보내기</button>
       <input type="file" id="importJsonFile" accept="application/json" />
-      <button id="importJsonBtn" class="warn" style="margin-top: 8px;">JSON 불러오기</button>
+      <button id="importJsonBtn" class="warn">players.json 불러오기</button>
+    </div>
+
+    <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);" />
+
+    <h3 style="color:var(--brand); margin:6px 0 8px;">경기 기록(gamerecord.json)</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <button id="exportGameRecordBtn" class="success">gamerecord.json 내보내기</button>
+      <input type="file" id="importGameRecordFile" accept="application/json" />
+      <button id="importGameRecordBtn" class="warn">gamerecord.json 불러오기</button>
     </div>
   </div>
 
@@ -538,9 +579,12 @@ button.stat-btn{
 const STORAGE_KEY = 'playersData';
 const LINEUP_KEY_BY_TEAM = (team)=>`lineup_${team}`;
 const LINEUP_IDX_KEY_BY_TEAM = (team)=>`lineup_idx_${team}`;
-const HISTORY_KEY = 'duelHistory_v2';
+const HISTORY_KEY = 'duelHistory_v3';              // v3: outcome + gameId
 const GAME_STATE_KEY = 'gameState_v2';
 const FIRST_TEAM_KEY = 'firstTeam_sel';
+
+const GAMES_META_KEY = 'gamesMeta_v1';
+const CURRENT_GAME_KEY = 'currentGameId_v1';
 
 /* ==== Data ==== */
 let players = [];
@@ -548,9 +592,13 @@ let offenseTeam = 'Leaders';
 let defenseTeam = 'CSIA';
 let inning = 1;
 let half = '초';
-let duelHistory = [];
-let historyPtr = -1;     // 포인터(원본 인덱스)
-let editIndex = -1;      // 편집 중인 히스토리 인덱스
+let duelHistory = [];     // [{..., gameId, outcome:{...}}]
+let historyPtr = -1;      // 포인터(원본 인덱스)
+let editIndex = -1;       // 편집 중인 히스토리 인덱스
+
+let gamesMeta = [];       // [{gameId, date, homeTeam, awayTeam, firstTeam, notes}]
+let currentGameId = '';
+
 let viewInning = 1;
 let viewHalf = '초';
 
@@ -589,10 +637,17 @@ const loadGameState = ()=>{
   half = s.half || '초';
 };
 
+const saveGamesMeta = ()=>localStorage.setItem(GAMES_META_KEY, JSON.stringify(gamesMeta));
+const loadGamesMeta = ()=>JSON.parse(localStorage.getItem(GAMES_META_KEY)||'[]');
+const saveCurrentGameId = (id)=>localStorage.setItem(CURRENT_GAME_KEY, id||'');
+const loadCurrentGameId = ()=>localStorage.getItem(CURRENT_GAME_KEY)||'';
+
 /* ==== Init ==== */
 function init(){
   players = loadPlayers();
   duelHistory = loadHistory();
+  gamesMeta = loadGamesMeta();
+  currentGameId = loadCurrentGameId();
   loadGameState();
 
   const savedFirst = localStorage.getItem(FIRST_TEAM_KEY);
@@ -602,6 +657,9 @@ function init(){
   }else{
     setFirstTeam(offenseTeam, false);
   }
+
+  // 경기 UI 초기화
+  initGameBar();
 
   renderPlayerList();
   updateMvpSelect();
@@ -659,11 +717,112 @@ function init(){
     setTimeout(()=>{
       const v = getSelectedValue(document.getElementById('hitterGroup'));
       if(v==='삼진'){ selectChipByValue(document.getElementById('pitcherGroup1'),'삼진'); }
+      if(v==='볼넷'){ selectChipByValue(document.getElementById('pitcherGroup1'),'볼넷'); }
     },0);
   });
 
   // 득점/자책점 상호 동기화
   setupRunERLink();
+
+  // gamerecord 내보내기/불러오기
+  document.getElementById('exportGameRecordBtn').addEventListener('click', exportGameRecord);
+  document.getElementById('importGameRecordBtn').addEventListener('click', importGameRecord);
+}
+
+/* ==== 경기 바 ==== */
+function todayStr(){
+  const d = new Date();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+function gameIdOf(date, home, away){
+  return `${date}_${away}@${home}`;
+}
+function setGameBadge(){
+  const badge = document.getElementById('gameBadge');
+  if(currentGameId){
+    const gm = gamesMeta.find(g=>g.gameId===currentGameId);
+    badge.style.display = 'inline-block';
+    badge.textContent = gm ? `경기: ${gm.awayTeam} @ ${gm.homeTeam} · ${gm.date}` : currentGameId;
+  }else{
+    badge.style.display = 'none';
+  }
+}
+function populateGameSelect(){
+  const sel = document.getElementById('gameSelect');
+  sel.innerHTML = `<option value="">(선택)</option>` + gamesMeta
+    .slice()
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(g=>`<option value="${g.gameId}">${g.date} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
+  if(currentGameId) sel.value = currentGameId;
+}
+function initGameBar(){
+  const dateEl = document.getElementById('gameDate');
+  dateEl.value = todayStr();
+
+  // 홈/원정 기본값(겹치면 자동 반전)
+  const homeSel = document.getElementById('homeTeamSel');
+  const awaySel = document.getElementById('awayTeamSel');
+  homeSel.value = 'Leaders';
+  awaySel.value = 'CSIA';
+
+  const ensureDifferent = ()=>{
+    if(homeSel.value === awaySel.value){
+      awaySel.value = (homeSel.value === 'Leaders') ? 'CSIA' : 'Leaders';
+    }
+  };
+  homeSel.addEventListener('change', ensureDifferent);
+  awaySel.addEventListener('change', ensureDifferent);
+
+  document.getElementById('startGameBtn').addEventListener('click', ()=>{
+    const date = dateEl.value || todayStr();
+    const home = homeSel.value;
+    const away = awaySel.value;
+    if(home===away) return alert('홈/원정 팀이 같을 수 없습니다.');
+
+    const fid = document.getElementById('firstTeamSel').value;
+    const id = gameIdOf(date, home, away);
+
+    if(!gamesMeta.find(g=>g.gameId===id)){
+      gamesMeta.push({gameId:id, date, homeTeam:home, awayTeam:away, firstTeam:fid, notes:''});
+      saveGamesMeta();
+    }
+    currentGameId = id;
+    saveCurrentGameId(currentGameId);
+    setGameBadge();
+    populateGameSelect();
+
+    // 선공 팀 동기화
+    setFirstTeam(fid, true);
+    alert(`새 경기 시작: ${away} @ ${home} (${date})`);
+    renderHistoryList();
+  });
+
+  document.getElementById('selectGameBtn').addEventListener('click', ()=>{
+    const id = document.getElementById('gameSelect').value;
+    if(!id) return alert('경기를 선택하세요.');
+    const gm = gamesMeta.find(g=>g.gameId===id);
+    if(!gm) return alert('경기 정보를 찾을 수 없습니다.');
+
+    currentGameId = gm.gameId;
+    saveCurrentGameId(currentGameId);
+    setGameBadge();
+    populateGameSelect();
+
+    // UI에 메타 반영(선공/홈원정/날짜)
+    document.getElementById('firstTeamSel').value = gm.firstTeam || 'Leaders';
+    setFirstTeam(gm.firstTeam || 'Leaders', true);
+    document.getElementById('homeTeamSel').value = gm.homeTeam;
+    document.getElementById('awayTeamSel').value = gm.awayTeam;
+    document.getElementById('gameDate').value = gm.date;
+
+    renderHistoryList('game');
+    alert(`경기 불러오기: ${gm.awayTeam} @ ${gm.homeTeam} (${gm.date})`);
+  });
+
+  populateGameSelect();
+  setGameBadge();
 }
 
 /* ==== helpers ==== */
@@ -742,6 +901,8 @@ function renderHistoryList(filterVal){
   let items = duelHistory.map((r,idx)=>({r, idx})).reverse(); // 최신 위
   if(f==='current'){
     items = items.filter(x => x.r.inning===inning && x.r.half===half);
+  }else if(f==='game' && currentGameId){
+    items = items.filter(x => x.r.gameId===currentGameId);
   }
 
   countEl.textContent = `(${items.length}건)`;
@@ -754,7 +915,7 @@ function renderHistoryList(filterVal){
   const activeIdx = (historyPtr===-1) ? -1 : historyPtr;
   listEl.innerHTML = items.map(({r, idx})=>{
     const title = `${r.inning}회 ${r.half} · ${r.offenseTeam} 공격`;
-    const sub   = `${r.hitterName}  vs  ${r.pitcherName}`;
+    const sub   = `${r.hitterName}  vs  ${r.pitcherName}` + (r.gameId?` · ${r.gameId}`:'');
     const res   = formatOutcome(r.outcome);
     const isActive = (activeIdx===idx);
     return `
@@ -1393,6 +1554,23 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
     return;
   }
 
+  // 경기 미설정 시 자동 생성(오늘 날짜, offense/defense 기준으로 홈/원정 추정)
+  if(!currentGameId){
+    const date = todayStr();
+    const home = defenseTeam;           // 수비가 홈으로 가정
+    const away = offenseTeam;
+    const fid  = document.getElementById('firstTeamSel').value || offenseTeam;
+    const id = gameIdOf(date, home, away);
+    if(!gamesMeta.find(g=>g.gameId===id)){
+      gamesMeta.push({gameId:id, date, homeTeam:home, awayTeam:away, firstTeam:fid, notes:''});
+      saveGamesMeta();
+    }
+    currentGameId = id;
+    saveCurrentGameId(currentGameId);
+    setGameBadge();
+    populateGameSelect();
+  }
+
   const defLu = getLineup(defenseTeam);
   let pitcherName = defLu.pitcher || (document.getElementById('pitcherNameDisplay').textContent||'').split(' (')[0].trim();
 
@@ -1415,8 +1593,13 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   applyOutcomeToStats(pitcherName, hitterName, outcome, +1);
   savePlayers(players);
 
-  // 히스토리 축적 (투수 vs 타자, 득점/자책점 포함)
-  duelHistory.push({pitcherName,hitterName,offenseTeam,defenseTeam,inning,half,ts:Date.now(), outcome});
+  // 히스토리 축적 (경기ID 포함)
+  duelHistory.push({
+    gameId: currentGameId,
+    pitcherName, hitterName, offenseTeam, defenseTeam, inning, half,
+    ts: Date.now(),
+    outcome
+  });
   saveHistory();
   historyPtr=-1;
   updateHistoryBadge(); // 목록 갱신 포함
@@ -1486,7 +1669,7 @@ document.getElementById('nextInningBtn').addEventListener('click', ()=>{
   jumpToLastPAOf(viewInning, viewHalf);
 });
 function jumpToLastPAOf(inn, hf){
-  const list = duelHistory.filter(r=>r.inning===inn && r.half===hf);
+  const list = duelHistory.filter(r=>r.inning===inn && r.half===hf && (!currentGameId || r.gameId===currentGameId));
   if(list.length===0){ alert(`${inn}회 ${hf} 기록이 없습니다.`); updateHistoryBadge(); return; }
   const rec = list[list.length-1];
   loadFromHistory(rec);
@@ -1495,6 +1678,82 @@ function jumpToLastPAOf(inn, hf){
   if(idx>=0){ historyPtr = idx; setEditMode(idx); updateHistoryBadge(); }
   syncSearchInputs();
   alert(`${inn}회 ${hf} 마지막 타석을 불러왔습니다.`);
+}
+
+/* ==== gamerecord.json 내보내기/불러오기 ==== */
+function asGameRecordJSON(){
+  // games: gamesMeta
+  // events: duelHistory -> 스키마 변환(이미 outcome 포함)
+  const events = duelHistory.map((e,i)=>({
+    id: `evt_${String(i+1).padStart(4,'0')}`,
+    gameId: e.gameId || '',
+    ts: e.ts || Date.now(),
+    inning: e.inning, half: e.half,
+    offenseTeam: e.offenseTeam, defenseTeam: e.defenseTeam,
+    pitcherName: e.pitcherName, hitterName: e.hitterName,
+    pitchCountDelta: e.outcome?.pitchCount || 0,
+    inningsDelta: e.outcome?.inningsDelta || 0,
+    earnedRunsDelta: e.outcome?.er || 0,
+    pitcherEvent: e.outcome?.pitcherEvt || '',
+    pitcherDecision: e.outcome?.pitcherDecision || null,
+    hitterEvent: e.outcome?.hitterEvt || '',
+    rbiDelta: e.outcome?.rbi || 0,
+    runScoredDelta: e.outcome?.run || 0
+  }));
+  return {
+    version: "3",
+    games: gamesMeta,
+    events
+  };
+}
+function exportGameRecord(){
+  const data = asGameRecordJSON();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='gamerecord.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+async function importGameRecord(){
+  const file = document.getElementById('importGameRecordFile').files?.[0];
+  if(!file) return alert('gamerecord.json 파일을 선택하세요.');
+  try{
+    const data = JSON.parse(await file.text());
+    if(!data || !Array.isArray(data.events) || !Array.isArray(data.games)) throw new Error('스키마 오류');
+
+    // 교체(간단 버전). 원하면 병합 로직도 구현 가능.
+    gamesMeta = data.games || [];
+    saveGamesMeta();
+
+    // duelHistory로 역매핑
+    duelHistory = (data.events || []).map(ev=>({
+      gameId: ev.gameId || '',
+      pitcherName: ev.pitcherName,
+      hitterName: ev.hitterName,
+      offenseTeam: ev.offenseTeam,
+      defenseTeam: ev.defenseTeam,
+      inning: ev.inning,
+      half: ev.half,
+      ts: ev.ts || Date.now(),
+      outcome: {
+        hitterEvt: ev.hitterEvent || '',
+        rbi: ev.rbiDelta || 0,
+        run: ev.runScoredDelta || 0,
+        pitcherEvt: ev.pitcherEvent || '',
+        pitcherDecision: ev.pitcherDecision || '',
+        pitchCount: ev.pitchCountDelta || 0,
+        inningsDelta: ev.inningsDelta || 0,
+        er: ev.earnedRunsDelta || 0
+      }
+    }));
+    saveHistory();
+
+    populateGameSelect();
+    setGameBadge();
+    renderHistoryList();
+    alert('gamerecord.json 불러오기 완료');
+  }catch(e){
+    alert('불러오기 실패: '+e.message);
+  }
 }
 
 /* ==== 시작 ==== */
