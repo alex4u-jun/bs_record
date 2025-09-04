@@ -707,17 +707,20 @@ function init(){
     document.getElementById('editorTop')?.scrollIntoView({behavior:'smooth', block:'start'});
   });
 
-  // 투수 결과칩(삼진/볼넷) → 타자 자동 동기화
+  // 투수 결과칩 클릭 → 타자 자동 동기화(확장)
   document.getElementById('pitcherGroup1').addEventListener('click', ()=>{
     setTimeout(()=>syncHitterFromPitcherResult(),0);
   });
 
-  // 타자 결과칩(삼진) → 투수 자동 동기화
+  // 타자 결과칩 클릭 → 투수 자동 동기화(확장)
   document.getElementById('hitterGroup').addEventListener('click', ()=>{
     setTimeout(()=>{
       const v = getSelectedValue(document.getElementById('hitterGroup'));
-      if(v==='삼진'){ selectChipByValue(document.getElementById('pitcherGroup1'),'삼진'); }
-      if(v==='볼넷'){ selectChipByValue(document.getElementById('pitcherGroup1'),'볼넷'); }
+      const pg1 = document.getElementById('pitcherGroup1');
+      // 양방향 동기화(표시)
+      if(['삼진','볼넷','내야땅볼','플라이아웃','희생플라이'].includes(v)){
+        selectChipByValue(pg1, v);
+      }
     },0);
   });
 
@@ -1166,7 +1169,7 @@ function clearChipSelection(rootEl){
 }
 function syncHitterFromPitcherResult(val){
   const v = val || getSelectedValue(document.getElementById('pitcherGroup1'));
-  if(v==='삼진' || v==='볼넷'){
+  if(['삼진','볼넷','내야땅볼','플라이아웃','희생플라이'].includes(v)){
     selectChipByValue(document.getElementById('hitterGroup'), v);
   }
 }
@@ -1217,7 +1220,11 @@ document.addEventListener('click',(e)=>{
 function findPlayer(name,type){ return players.find(p=>p.name===name && p.type===type); }
 function renderPitcherEditor(pitcher){
   document.getElementById('pitcherNameDisplay').textContent = `${pitcher.name} (${pitcher.team})`;
-  renderChipGroup(document.getElementById('pitcherGroup1'), ['삼진','볼넷','피안타','피홈런','사구']);
+  // ✅ 투수 칩에 '내야땅볼/플라이아웃/희생플라이' 추가 (표시/동기화용)
+  renderChipGroup(
+    document.getElementById('pitcherGroup1'),
+    ['삼진','볼넷','피안타','피홈런','사구','내야땅볼','플라이아웃','희생플라이']
+  );
   renderChipGroup(document.getElementById('pitcherGroup2'), ['승리','패배','홀드','세이브']);
   document.getElementById('pitcherPitchCountInput').value = 0;
   document.getElementById('pitcherInningsInput').value = 0;
@@ -1457,7 +1464,11 @@ function applyOutcomeToStats(pitcherName, hitterName, outcome, sign){
     p.stats['투구수'] = (p.stats['투구수']||0) + s(outcome.pitchCount);
     p.stats['이닝']   = (p.stats['이닝']  ||0) + s(outcome.inningsDelta);
     p.stats['자책점'] = (p.stats['자책점']||0) + s(outcome.er);
-    if(outcome.pitcherEvt){ p.stats[outcome.pitcherEvt] = (p.stats[outcome.pitcherEvt]||0) + s(1); }
+    // 투수 기록은 삼진/볼넷/피안타/피홈런/사구/승패세이브만 누적
+    const pe = outcome.pitcherEvt;
+    if(pe && ['삼진','볼넷','피안타','피홈런','사구'].includes(pe)){
+      p.stats[pe] = (p.stats[pe]||0) + s(1);
+    }
     if(outcome.pitcherDecision){ p.stats[outcome.pitcherDecision] = (p.stats[outcome.pitcherDecision]||0) + s(1); }
   }
   if(h){
@@ -1474,7 +1485,16 @@ function readCurrentOutcomeFromUI(){
   const erDelta         = Math.max(0, parseInt(document.getElementById('pitcherERInput').value)||0);
   const g1 = getSelectedValue(document.getElementById('pitcherGroup1'));
   const g2 = getSelectedValue(document.getElementById('pitcherGroup2'));
-  const hitterEvt = getSelectedValue(document.getElementById('hitterGroup'));
+  let   hitterEvt = getSelectedValue(document.getElementById('hitterGroup'));
+  // 투수 칩으로 선택했지만 투수 통계엔 반영하지 않을 항목
+  const pitcherOnlyDisplay = ['내야땅볼','플라이아웃','희생플라이'];
+
+  // 투수칩이 위 세 항목이고 타자칩이 비어 있으면 타자 이벤트로 사용
+  if(pitcherOnlyDisplay.includes(g1) && !hitterEvt){ hitterEvt = g1; }
+
+  // 투수 이벤트는 누적 가능한 항목만 인정
+  const pitcherEvt = (['삼진','볼넷','피안타','피홈런','사구'].includes(g1)) ? g1 : '';
+
   const rbiDelta  = Math.max(0, parseInt(document.getElementById('hitterRBIInput').value)||0);
   const runDelta  = Math.max(0, parseInt(document.getElementById('hitterRUNInput').value)||0);
 
@@ -1482,7 +1502,7 @@ function readCurrentOutcomeFromUI(){
     hitterEvt: hitterEvt || '',
     rbi: rbiDelta || 0,
     run: runDelta || 0,
-    pitcherEvt: g1 || '',
+    pitcherEvt,
     pitcherDecision: g2 || '',
     pitchCount: pitchCountDelta || 0,
     inningsDelta: inningsDelta || 0,
@@ -1554,7 +1574,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
     return;
   }
 
-  // 경기 미설정 시 자동 생성(오늘 날짜, offense/defense 기준으로 홈/원정 추정)
+  // 경기 미설정 시 자동 생성
   if(!currentGameId){
     const date = todayStr();
     const home = defenseTeam;           // 수비가 홈으로 가정
@@ -1593,7 +1613,7 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   applyOutcomeToStats(pitcherName, hitterName, outcome, +1);
   savePlayers(players);
 
-  // 히스토리 축적 (경기ID 포함)
+  // 히스토리 축적
   duelHistory.push({
     gameId: currentGameId,
     pitcherName, hitterName, offenseTeam, defenseTeam, inning, half,
@@ -1682,8 +1702,6 @@ function jumpToLastPAOf(inn, hf){
 
 /* ==== gamerecord.json 내보내기/불러오기 ==== */
 function asGameRecordJSON(){
-  // games: gamesMeta
-  // events: duelHistory -> 스키마 변환(이미 outcome 포함)
   const events = duelHistory.map((e,i)=>({
     id: `evt_${String(i+1).padStart(4,'0')}`,
     gameId: e.gameId || '',
@@ -1720,11 +1738,9 @@ async function importGameRecord(){
     const data = JSON.parse(await file.text());
     if(!data || !Array.isArray(data.events) || !Array.isArray(data.games)) throw new Error('스키마 오류');
 
-    // 교체(간단 버전). 원하면 병합 로직도 구현 가능.
     gamesMeta = data.games || [];
     saveGamesMeta();
 
-    // duelHistory로 역매핑
     duelHistory = (data.events || []).map(ev=>({
       gameId: ev.gameId || '',
       pitcherName: ev.pitcherName,
