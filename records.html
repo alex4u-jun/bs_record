@@ -852,27 +852,33 @@ footer { margin-top:24px; opacity:.65; font-size:.9rem; }
     return norm;
   }
   function calcAggFromEvents(events){
-    let PA=0,H=0,_2B=0,_3B=0,HR=0,BB=0,SO=0,RBI=0,R=0,AB=0,TB=0,SF=0;
-    events.forEach(e=>{
-      const o=e._o;
-      PA += 1;
-      if (o.h === 1){H++;AB++;TB+=1;}
-      else if (o.h === 2){H++;_2B++;AB++;TB+=2;}
-      else if (o.h === 3){H++;_3B++;AB++;TB+=3;}
-      else if (o.h === 4){H++;HR++;AB++;TB+=4;}
-      else if (o.bb){BB++;}
-      else if (o.so){SO++;AB++;}
-      else if (o.out){AB++;}
-      if (o.sf){SF++;}
-      RBI += (o.rbi||0); R += (o.run||0);
-    });
-    const OBPden = AB + BB + SF;
-    const AVG = AB ? H/AB : 0;
-    const OBP = OBPden ? (H + BB)/OBPden : 0;
-    const SLG = AB ? TB/AB : 0;
-    const OPS = OBP + SLG;
-    return {PA,H,_2B,_3B,HR,BB,SO,RBI,R,AVG,OBP,SLG,OPS};
-  }
+  let PA=0,H=0,_2B=0,_3B=0,HR=0,BB=0,SO=0,RBI=0,R=0,AB=0,TB=0,SF=0, HBP=0;
+
+  events.forEach(e=>{
+    const o = e._o;
+    PA += 1;                    // 모든 이벤트가 타석 1
+    if (o.h === 1){H++;AB++;TB+=1;}
+    else if (o.h === 2){H++;_2B++;AB++;TB+=2;}
+    else if (o.h === 3){H++;_3B++;AB++;TB+=3;}
+    else if (o.h === 4){H++;HR++;AB++;TB+=4;}
+    else if (o.bb){BB++;}
+    else if (o.so){SO++;AB++;}
+    else if (o.out){AB++;}
+    if (o.sf){SF++;}
+    if (o.hbp){HBP++;}          // 사구 카운트(표시는 안 해도 무방)
+
+    RBI += (o.rbi||0);
+    R   += (o.run||0);
+  });
+
+  const OBPden = AB + BB + SF + HBP;     // (참고) 필요 시 OBP도 이렇게 쓰세요
+  const AVG = PA ? H/PA : 0;             // ← 타율 = H / PA
+  const OBP = OBPden ? (H + BB + HBP)/OBPden : 0;
+  const SLG = AB ? TB/AB : 0;
+  const OPS = OBP + SLG;
+
+  return {PA,H,_2B,_3B,HR,BB,SO,RBI,R,AVG,OBP,SLG,OPS};
+}
 
   h2hSearchBtn.addEventListener('click', async ()=>{
     const pitcher = h2hPitcher.value.trim();
@@ -994,4 +1000,5 @@ footer { margin-top:24px; opacity:.65; font-size:.9rem; }
 
 </body>
 </html>
+
 
