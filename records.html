@@ -488,8 +488,10 @@ function outcomeToText(o){
 
 /* ===== 타자/투수 지표 계산 — 볼넷은 타수(AB)에 미포함 ===== */
 function calculateAB(p){
-  const H = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
-  return H + (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
+  const H   = (p.stats['1루타']||0)+(p.stats['2루타']||0)+(p.stats['3루타']||0)+(p.stats['홈런']||0);
+  const OUT = (p.stats['삼진']||0) + (p.stats['내야땅볼']||0) + (p.stats['플라이아웃']||0);
+  const ROE = (p.stats['수비 실책']||0); // ROE는 타수에 포함, 안타에는 미포함
+  return H + OUT + ROE;
 }
 function calculatePA(p){
   const AB = calculateAB(p), BB = p.stats['볼넷']||0, SF = p.stats['희생플라이']||0;
@@ -820,5 +822,6 @@ goToInputBtn.onclick = ()=>{
 </script>
 </body>
 </html>
+
 
 
