@@ -98,27 +98,48 @@
 
     const PLAYER_JSON_URL = "https://alex4u-jun.github.io/bs_record/players.json";
 
+    // ----- 공통 계산 유틸 (공식 규정대로 ROE를 AB에 포함) -----
+    function singles(p){ return p.stats['1루타'] || 0; }
+    function doubles(p){ return p.stats['2루타'] || 0; }
+    function triples(p){ return p.stats['3루타'] || 0; }
+    function homers(p){ return p.stats['홈런']  || 0; }
+    function strikeouts(p){ return p.stats['삼진'] || 0; }
+    function gbOut(p){ return p.stats['내야땅볼'] || 0; }
+    function fbOut(p){ return p.stats['플라이아웃'] || 0; }
+    function walks(p){ return p.stats['볼넷'] || 0; }
+    function sacFly(p){ return p.stats['희생플라이'] || 0; }
+    function roe(p){ return p.stats['수비 실책'] || 0; } // ✅ ROE(수비 실책)
+
+    function hits(p){
+      return singles(p) + doubles(p) + triples(p) + homers(p);
+    }
+    function atBats(p){
+      // ✅ ROE를 타수에 포함 (안타는 포함, 볼넷/SF는 제외)
+      return hits(p) + strikeouts(p) + gbOut(p) + fbOut(p) + roe(p);
+    }
+    function totalBases(p){
+      // 안타에 의해서만 총루타 증가
+      return singles(p) + 2*doubles(p) + 3*triples(p) + 4*homers(p);
+    }
+
     function calculateAVG(player) {
-      const H = (player.stats['1루타'] || 0) + (player.stats['2루타'] || 0) + (player.stats['3루타'] || 0) + (player.stats['홈런'] || 0);
-      const AB = H + (player.stats['삼진'] || 0) + (player.stats['내야땅볼'] || 0) + (player.stats['플라이아웃'] || 0);
+      const H  = hits(player);
+      const AB = atBats(player);
       return AB === 0 ? 0 : H / AB;
     }
 
     function calculateOBP(player) {
-      const H = (player.stats['1루타'] || 0) + (player.stats['2루타'] || 0) + (player.stats['3루타'] || 0) + (player.stats['홈런'] || 0);
-      const BB = player.stats['볼넷'] || 0;
-      const AB = H + (player.stats['삼진'] || 0) + (player.stats['내야땅볼'] || 0) + (player.stats['플라이아웃'] || 0);
-      const SF = player.stats['희생플라이'] || 0;
+      const H  = hits(player);
+      const BB = walks(player);
+      const AB = atBats(player);  // ✅ ROE 포함된 AB
+      const SF = sacFly(player);
       const denom = AB + BB + SF;
-      return denom === 0 ? 0 : (H + BB) / denom;
+      return denom === 0 ? 0 : (H + BB) / denom; // HBP=0 가정
     }
 
     function calculateSLG(player) {
-      const doubles = player.stats['2루타'] || 0;
-      const triples = player.stats['3루타'] || 0;
-      const HR = player.stats['홈런'] || 0;
-      const AB = doubles + triples + HR + (player.stats['삼진'] || 0) + (player.stats['내야땅볼'] || 0) + (player.stats['플라이아웃'] || 0);
-      const TB = doubles * 2 + triples * 3 + HR * 4;
+      const TB = totalBases(player);
+      const AB = atBats(player);  // ✅ ROE 포함된 AB
       return AB === 0 ? 0 : TB / AB;
     }
 
@@ -126,6 +147,7 @@
       return calculateOBP(player) + calculateSLG(player);
     }
 
+    // 투수 지표
     function calculateERA(player) {
       const ER = player.stats['자책점'] || 0;
       const IP = player.stats['이닝'] || 0;
@@ -185,18 +207,33 @@
             player.mvpCount || 0
           ];
         } else {
-          statHeaders = ['1루타', '2루타', '3루타', '홈런', '삼진', '볼넷', '희생플라이', '내야땅볼', '플라이아웃', '타점', '타율', '출루율', '장타율', 'OPS', 'MVP 횟수'];
+          // ✅ 타자 표에 '수비 실책' 추가 + 계산 공식은 ROE를 AB에 포함
+          const H  = hits(player);
+          const AB = atBats(player);
+          const TB = totalBases(player);
+
+          statHeaders = [
+            '1루타', '2루타', '3루타', '홈런',
+            '삼진', '볼넷', '희생플라이',
+            '내야땅볼', '플라이아웃', '수비 실책',  // ✅ 추가
+            '타점',
+            '타수(AB)', '안타(H)', '총루타(TB)',  // 참고용 지표(원하면 숨겨도 됨)
+            '타율', '출루율', '장타율', 'OPS',
+            'MVP 횟수'
+          ];
           statValues = [
-            player.stats['1루타'] || 0,
-            player.stats['2루타'] || 0,
-            player.stats['3루타'] || 0,
-            player.stats['홈런'] || 0,
-            player.stats['삼진'] || 0,
-            player.stats['볼넷'] || 0,
-            player.stats['희생플라이'] || 0,
-            player.stats['내야땅볼'] || 0,
-            player.stats['플라이아웃'] || 0,
+            singles(player),
+            doubles(player),
+            triples(player),
+            homers(player),
+            strikeouts(player),
+            walks(player),
+            sacFly(player),
+            gbOut(player),
+            fbOut(player),
+            roe(player),                     // ✅ 수비 실책 수치
             player.stats['타점'] || 0,
+            AB, H, TB,                       // 참고용
             calculateAVG(player).toFixed(3),
             calculateOBP(player).toFixed(3),
             calculateSLG(player).toFixed(3),
@@ -229,3 +266,4 @@
   </script>
 </body>
 </html>
+
