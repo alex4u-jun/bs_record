@@ -324,6 +324,7 @@ footer{ margin-top:20px; opacity:.65; font-size:.9rem; }
       </thead>
       <tbody></tbody>
     </table>
+    <p id="gameNoData" class="no-data" style="display:none;">해당 경기의 이벤트가 없습니다.</p>
   </section>
 
   <div id="mvpRankingSection" style="display:none; margin-top:16px;">
@@ -366,23 +367,14 @@ const GAMERECORD_JSON_URLS = [
 ];
 
 /* ======================= 자격요건(규정) 설정 ======================= */
-/* 타자: 상위 70% 퍼센타일(동률 포함), 하한 없음 / 투수: 규정 없음 */
 const QUALIFIER = {
-  hitter: {
-    mode: 'percentile',
-    percentile: 0.70,
-    floor: 0
-  },
-  pitcher: {
-    mode: 'none'
-  }
+  hitter: { mode: 'percentile', percentile: 0.70, floor: 0 },
+  pitcher: { mode: 'none' }
 };
 
 /* ======================= 전역 캐시 ======================= */
 let __allPlayersCache = null;
-let __hitterPercentileCutoffPA = 0;   // 타자 규정 컷오프(동률 포함)
-let __paNeedByTeam = {};              // 호환용(미사용)
-let __ipNeedByTeam = {};              // 호환용(미사용)
+let __hitterPercentileCutoffPA = 0;
 
 /* ======================= 데이터 로더 ======================= */
 async function loadPlayersFromJson(){
@@ -406,7 +398,13 @@ async function loadGameRecordJsonMerged(){
     const out = {version:"merged", games:[], events:[]};
     const gset = new Set(), eset = new Set();
     jsons.forEach(j=>{
-      (j.games||[]).forEach(g=>{ const id=g.gameId||g.id; if(!gset.has(id)){ gset.add(id); out.games.push(g); }});
+      (j.games||[]).forEach(g=>{
+        const id = g.gameId ?? g.id;
+        if(!gset.has(id)){
+          gset.add(id);
+          out.games.push(g);
+        }
+      });
       (j.events||[]).forEach(e=>{
         const id=e.id || `${e.gameId}_${e.inning}_${e.half}_${e.hitterName}_${e.pitcherName}_${e.createdAt||e.updatedAt||e.ts||''}`;
         if(!eset.has(id)){ eset.add(id); out.events.push(e); }
@@ -417,12 +415,7 @@ async function loadGameRecordJsonMerged(){
 }
 
 /* ======================= 보조 유틸 ======================= */
-function isDescPreferred(stat){
-  return ['타율','홈런','출루율','OPS','타점','승리','세이브','홀드','삼진','WAR'].includes(stat);
-}
-function isAscPreferred(stat){
-  return ['ERA','WHIP'].includes(stat);
-}
+function isAscPreferred(stat){ return ['ERA','WHIP'].includes(stat); }
 function filterByName(players, keyword){
   if(!keyword) return players;
   const lower = keyword.toLowerCase();
@@ -458,7 +451,6 @@ function calculateAB(p){
   const ROE = (p.stats['수비 실책']||0);
   return H + OUT + ROE;
 }
-// ===== PA 헬퍼 (players.json을 우선 신뢰) =====
 function playerPA(p){
   if (p.PA != null && Number.isFinite(+p.PA)) return +p.PA;
   const AB = calculateAB(p);
@@ -494,13 +486,13 @@ function wobaNumeratorFromStats(p){
          (s['3루타']||0)*WAR_WEIGHTS.triple + (s['홈런']||0)*WAR_WEIGHTS.hr + (s['볼넷']||0)*WAR_WEIGHTS.bb;
 }
 function computeLeagueWoba(hitters){
-  let num=0, den=0; hitters.forEach(h=>{ num+=wobaNumeratorFromStats(h); den+=playerPA(h); }); // ✅ playerPA 사용
+  let num=0, den=0; hitters.forEach(h=>{ num+=wobaNumeratorFromStats(h); den+=playerPA(h); });
   return den? num/den : 0;
 }
 function buildWarMap(hittersAll){
   const league = computeLeagueWoba(hittersAll); const map={};
   hittersAll.forEach(p=>{
-    const PA=playerPA(p); if(!PA){ map[p.name]=0; return; } // ✅ playerPA 사용
+    const PA=playerPA(p); if(!PA){ map[p.name]=0; return; }
     const woba = wobaNumeratorFromStats(p)/PA;
     const wRAA = (woba - league)/WOBASCALE * PA;
     const rep = REPLACEMENT_PER_600PA*(PA/600);
@@ -533,39 +525,31 @@ function getMedalIcon(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':''; }
 function computePercentileCutoffPA(allPlayers, pct=QUALIFIER.hitter.percentile, floor=QUALIFIER.hitter.floor){
   const paList = allPlayers
     .filter(p=>p.type==='타자')
-    .map(playerPA)                                    // players.json의 PA 사용
+    .map(playerPA)
     .filter(x=>Number.isFinite(x) && x>=0)
-    .sort((a,b)=>a-b);
+  .sort((a,b)=>a-b);
 
   if (paList.length === 0) return floor||0;
-
-  // 상위 pct ⇒ 하위 (1-pct) 퍼센타일 값을 컷오프(동률 포함)
-  const q = 1 - (pct ?? 0.7);                         // 예: 0.30
+  const q = 1 - (pct ?? 0.7);
   const idx = Math.floor((paList.length-1) * q);
   const cutoff = paList[idx];
-
-  return Math.max(cutoff, floor||0);                  // floor=0이므로 대체로 cutoff 그대로
+  return Math.max(cutoff, floor||0);
 }
 
 /* ======================= 규정 적용 ======================= */
 function applyQualifiersSplit(list, stat){
-  const isH = hitterStatsForRanking.includes(stat);
-  const qualified = [];
-  const nonQualified = [];
-
+  const isH = ['타율','홈런','출루율','OPS','타점','WAR'].includes(stat);
+  const qualified = [], nonQualified = [];
   list.forEach(p=>{
     if(isH){
-      // 타자: 퍼센타일 규정(동률 포함)
       const need = __hitterPercentileCutoffPA || 0;
       const have = playerPA(p);
       (have >= need ? qualified : nonQualified).push({...p, __need:need, __have:have});
     }else{
-      // 투수: 규정 없음
       const have = (p.stats['이닝']||0);
       qualified.push({...p, __need:null, __have:have});
     }
   });
-
   return {qualified, nonQualified};
 }
 
@@ -586,9 +570,8 @@ function createRankingTable(players, stat, nonQualifiers){
   });
   thead.appendChild(hr);
 
-  // 규정 충족자
   players.forEach((p,i)=>{
-    const unit = hitterStatsForRanking.includes(stat) ? 'PA' : 'IP';
+    const unit = ['타율','홈런','출루율','OPS','타점','WAR'].includes(stat) ? 'PA' : 'IP';
     const tipNeed = (p.__need==null) ? '' : `필요 ${p.__need} ${unit} / `;
     const tr=document.createElement('tr');
     tr.innerHTML = `<td>${getMedalIcon(i)}${i+1}</td>
@@ -600,7 +583,6 @@ function createRankingTable(players, stat, nonQualifiers){
     tbody.appendChild(tr);
   });
 
-  // 규정 미달자(투수는 없음)
   if(nonQualifiers && nonQualifiers.length){
     const sep=document.createElement('tr');
     sep.innerHTML=`<td colspan="3" style="border-top:3px solid #c43; text-align:center; font-weight:800;">규정 미달</td>`;
@@ -622,30 +604,23 @@ function createRankingTable(players, stat, nonQualifiers){
 function hitterTieBreakerDesc(a,b,stat){
   const va=getStatValue(a,stat), vb=getStatValue(b,stat);
   if(vb!==va) return vb-va;
-  // 동률이면 PA 많은 선수가 우위 (players.json PA 사용)
   return playerPA(b) - playerPA(a);
 }
 function pitcherTieBreakerDesc(a,b,stat){
   const va=getStatValue(a,stat), vb=getStatValue(b,stat);
   if(vb!==va) return vb-va;
-  // 동률이면 이닝 많은 선수가 우위
   return (b.stats['이닝']||0) - (a.stats['이닝']||0);
 }
 async function renderRanking(stat, asc=true){
   rankingContent.innerHTML='';
   const all = __allPlayersCache || await loadPlayersFromJson();
-  const isH = hitterStatsForRanking.includes(stat);
+  const isH = ['타율','홈런','출루율','OPS','타점','WAR'].includes(stat);
   let list = all.filter(p=> isH ? p.type==='타자' : p.type==='투수');
   if(stat==='WAR'){ const map=buildWarMap(all.filter(p=>p.type==='타자')); list.forEach(p=>p.__war=map[p.name]||0); }
   list = filterByName(list, (searchInput.value||'').trim());
 
-  // 정렬: ERA/WHIP만 오름차순 기본, 그 외 내림차순
-  if(asc){
-    list.sort((a,b)=>getStatValue(a,stat)-getStatValue(b,stat));
-  }else{
-    if(isH) list.sort((a,b)=>hitterTieBreakerDesc(a,b,stat));
-    else    list.sort((a,b)=>pitcherTieBreakerDesc(a,b,stat));
-  }
+  if(asc){ list.sort((a,b)=>getStatValue(a,stat)-getStatValue(b,stat)); }
+  else{ if(isH) list.sort((a,b)=>hitterTieBreakerDesc(a,b,stat)); else list.sort((a,b)=>pitcherTieBreakerDesc(a,b,stat)); }
 
   const {qualified, nonQualified} = applyQualifiersSplit(list, stat);
   rankingContent.appendChild(createRankingTable(qualified, stat, nonQualified));
@@ -713,16 +688,40 @@ async function calculateTeamStats(){
 }
 
 /* ======================= gamerecord 정규화 ======================= */
-function normGame(g){ if(!g) return null; return { id:g.gameId||g.id, date:g.date, awayTeam:g.awayTeam||g.away||g.visitor, homeTeam:g.homeTeam||g.home }; }
+/* ✅ ID를 문자열로 통일(타입 불일치 방지) */
+function normGame(g){
+  if(!g) return null;
+  const rawId = g.gameId ?? g.id;
+  const idStr = (rawId==null) ? '' : String(rawId);
+  return {
+    id: idStr,
+    date: g.date || '',
+    awayTeam: g.awayTeam||g.away||g.visitor||'',
+    homeTeam: g.homeTeam||g.home||''
+  };
+}
 function normEvent(e){
   if(!e) return null;
+  const rawGid = e.gameId ?? e.id ?? e.gid;
+  const gidStr = (rawGid==null) ? '' : String(rawGid);
   return {
-    gameId:e.gameId||e.id||e.gid, ts:e.ts||e.timestamp||e.createdAt||e.updatedAt, inning:e.inning, half:e.half||e.topbottom||e.tb,
-    offenseTeam:e.offenseTeam||e.offense||e.battingTeam, defenseTeam:e.defenseTeam||e.defense||e.fieldingTeam,
-    hitterName:e.hitterName||e.batterName||e.hitter||e.batter, pitcherName:e.pitcherName||e.pitcher,
-    hitterEvent:e.hitterEvent, rbiDelta:e.rbiDelta||e.rbi, runScoredDelta:e.runScoredDelta||e.run,
-    pitcherEvent:e.pitcherEvent, pitcherDecision:e.pitcherDecision, pitchCountDelta:e.pitchCountDelta||e.pitchCount,
-    inningsDelta:e.inningsDelta, earnedRunsDelta:e.earnedRunsDelta||e.er, outcome:e.outcome
+    gameId: gidStr,
+    ts: e.ts||e.timestamp||e.createdAt||e.updatedAt||null,
+    inning: Number.isFinite(+e.inning) ? +e.inning : e.inning,  // 숫자 우선
+    half: e.half||e.topbottom||e.tb||'',
+    offenseTeam: e.offenseTeam||e.offense||e.battingTeam||'',
+    defenseTeam: e.defenseTeam||e.defense||e.fieldingTeam||'',
+    hitterName: e.hitterName||e.batterName||e.hitter||e.batter||'',
+    pitcherName: e.pitcherName||e.pitcher||'',
+    hitterEvent: e.hitterEvent,
+    rbiDelta: e.rbiDelta||e.rbi,
+    runScoredDelta: e.runScoredDelta||e.run,
+    pitcherEvent: e.pitcherEvent,
+    pitcherDecision: e.pitcherDecision,
+    pitchCountDelta: e.pitchCountDelta||e.pitchCount,
+    inningsDelta: e.inningsDelta,
+    earnedRunsDelta: e.earnedRunsDelta||e.er,
+    outcome: e.outcome
   };
 }
 
@@ -747,7 +746,10 @@ async function prepareH2HForm(){
   dlHitters.innerHTML  = hitters.map(n=>`<option value="${n}">`).join('');
   const gr=await loadGameRecordJsonMerged();
   const options=(gr.games||[]).map(normGame).filter(Boolean);
-  h2hGameSelect.innerHTML = '<option value="">전체 경기</option>' + options.sort((a,b)=>a.date.localeCompare(b.date)).map(g=>`<option value="${g.id}">${g.date} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
+  h2hGameSelect.innerHTML = '<option value="">전체 경기</option>' + options
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+    .map(g=>`<option value="${g.id}">${g.date||'(날짜없음)'} · ${g.awayTeam} @ ${g.homeTeam}</option>`)
+    .join('');
 }
 function normalizeOutcomeForAgg(ev){
   const o = ev.outcome || { hitterEvent:ev.hitterEvent, rbi:ev.rbiDelta, run:ev.runScoredDelta, pitcherEvent:ev.pitcherEvent, pitcherDecision:ev.pitcherDecision, pitchCount:ev.pitchCountDelta, inningsDelta:ev.inningsDelta, er:ev.earnedRunsDelta };
@@ -786,7 +788,7 @@ h2hSearchBtn.addEventListener('click', async ()=>{
   let evs = (gr.events||[]).map(normEvent).filter(Boolean).filter(e=>{
     const okPitch = pitcher ? (e.pitcherName===pitcher) : true;
     const okHitter = hitter ? (e.hitterName===hitter) : true;
-    const okGame = gameFilter ? (e.gameId===gameFilter) : true;
+    const okGame = gameFilter ? (String(e.gameId)===String(gameFilter)) : true; // ✅ 타입 통일 비교
     return okPitch && okHitter && okGame;
   });
 
@@ -803,7 +805,7 @@ h2hSearchBtn.addEventListener('click', async ()=>{
     const g=gamesMap[e.gameId];
     const text=outcomeToText({hitterEvent:e.hitterEvent, rbi:e.rbiDelta, run:e.runScoredDelta, pitcherEvent:e.pitcherEvent, pitcherDecision:e.pitcherDecision, pitchCount:e.pitchCountDelta, inningsDelta:e.inningsDelta, er:e.earnedRunsDelta} || e.outcome);
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${i+1}</td><td>${fmtTs(e.ts)}</td><td>${g?`${g.date} · ${g.awayTeam} @ ${g.homeTeam}`:(e.gameId||'')}</td><td>${e.inning}회 ${e.half||''}</td><td>${e.offenseTeam||''}</td><td>${e.hitterName||''}</td><td>${e.pitcherName||''}</td><td>${text}</td>`;
+    tr.innerHTML = `<td>${i+1}</td><td>${fmtTs(e.ts)}</td><td>${g?`${g.date||''} · ${g.awayTeam} @ ${g.homeTeam}`:(e.gameId||'')}</td><td>${e.inning}회 ${e.half||''}</td><td>${e.offenseTeam||''}</td><td>${e.hitterName||''}</td><td>${e.pitcherName||''}</td><td>${text}</td>`;
     h2hTableBody.appendChild(tr);
     e._o = normalizeOutcomeForAgg(e);
   });
@@ -823,11 +825,13 @@ const gameSort = document.getElementById('gameSort');
 const gameLoadBtn = document.getElementById('gameLoadBtn');
 const gameSummary = document.getElementById('gameSummary');
 const gameTableBody = document.querySelector('#gameTable tbody');
+const gameNoData = document.getElementById('gameNoData');
 
 async function prepareGameList(){
   const gr=await loadGameRecordJsonMerged();
-  const list=(gr.games||[]).map(normGame).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
-  gameSelect.innerHTML = '<option value="">(선택)</option>'+list.map(g=>`<option value="${g.id}">${g.date} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
+  const list=(gr.games||[]).map(normGame).filter(g=>g && g.id);
+  list.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  gameSelect.innerHTML = '<option value="">(선택)</option>'+list.map(g=>`<option value="${g.id}">${g.date||'(날짜없음)'} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
 }
 function sortEvents(evs, mode){
   if(mode==='time_desc') evs.sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -839,10 +843,12 @@ function sortEvents(evs, mode){
   return evs;
 }
 gameLoadBtn.addEventListener('click', async ()=>{
-  const id=gameSelect.value; if(!id) return alert('경기를 선택하세요.');
+  const id=gameSelect.value;
+  if(!id) return alert('경기를 선택하세요.');
   const gr=await loadGameRecordJsonMerged();
 
-  let evs=(gr.events||[]).map(normEvent).filter(e=>e && e.gameId===id);
+  // ✅ 타입 통일 비교 (문자열)
+  let evs=(gr.events||[]).map(normEvent).filter(e=>e && String(e.gameId)===String(id));
 
   const team = gameTeamFilter.value;
   if(team) evs = evs.filter(e=> e.offenseTeam===team || e.defenseTeam===team);
@@ -858,6 +864,7 @@ gameLoadBtn.addEventListener('click', async ()=>{
   });
 
   gameSummary.textContent = `이벤트 ${evs.length}건`;
+  gameNoData.style.display = evs.length ? 'none' : 'block';
 });
 [gameTeamFilter, gameSort].forEach(el=>el.addEventListener('change', ()=>{ if(gameSelect.value) gameLoadBtn.click(); }));
 
@@ -901,7 +908,7 @@ let currentSort = { column: null, asc: true };
 function clearActiveMenu(){ [...hitterMenu.children, ...pitcherMenu.children, ...extraMenu.children].forEach(li=>li.classList.remove('active')); }
 function activateRanking(stat){
   currentSort.column = stat;
-  currentSort.asc = isAscPreferred(stat); // ERA/WHIP만 오름차순 기본
+  currentSort.asc = isAscPreferred(stat);
   searchInput.value='';
   rankingContent.style.display='block'; h2hSection.style.display='none'; gamesSection.style.display='none';
   renderRanking(currentSort.column, currentSort.asc);
@@ -938,8 +945,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
   // 타자 퍼센타일 규정 컷오프 계산(동률 포함)
   __hitterPercentileCutoffPA = computePercentileCutoffPA(__allPlayersCache);
-  // console.log('[qualifier] cutoffPA=', __hitterPercentileCutoffPA);
-
   // 선택된 지표가 있으면 즉시 렌더
   if(currentSort.column) renderRanking(currentSort.column, currentSort.asc);
 });
