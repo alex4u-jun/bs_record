@@ -468,7 +468,12 @@ let currentSort = { column: null, asc: true };
 
 /* ======================= 보조 유틸 ======================= */
 function isDescPreferred(stat){
+  // 숫자 클수록 좋은 지표들 → 기본 내림차순
   return ['타율','홈런','출루율','OPS','타점','승리','세이브','홀드','삼진','WAR'].includes(stat);
+}
+function isAscPreferred(stat){
+  // 숫자 작을수록 좋은 지표들 → 기본 오름차순
+  return ['ERA','WHIP'].includes(stat);
 }
 function filterByName(players, keyword){
   if(!keyword) return players;
@@ -615,16 +620,14 @@ async function renderRanking(stat, asc=true){
   if(stat==='WAR'){ const map=buildWarMap(all.filter(p=>p.type==='타자')); list.forEach(p=>p.__war=map[p.name]||0); }
   list = filterByName(list, (searchInput.value||'').trim());
 
-  // 정렬: desc가 기본(대부분 지표), asc는 ERA/WHIP 같은 지표
-  const desc = isDescPreferred(stat);
-  if((!asc && desc) || (asc && !desc)){
-    // 오름차순
+  // === 정렬: asc면 오름차순, 아니면 내림차순(동률 타이브레이커) ===
+  if(asc){
     list.sort((a,b)=>getStatValue(a,stat)-getStatValue(b,stat));
   }else{
-    // 내림차순 + 동률 타이브레이커
     if(isH) list.sort((a,b)=>hitterTieBreakerDesc(a,b,stat));
     else    list.sort((a,b)=>pitcherTieBreakerDesc(a,b,stat));
   }
+
   rankingContent.appendChild(createRankingTable(list, stat));
 }
 
@@ -820,8 +823,11 @@ gameLoadBtn.addEventListener('click', async ()=>{
 /* ======================= 메뉴/검색 ======================= */
 function clearActiveMenu(){ [...hitterMenu.children, ...pitcherMenu.children, ...extraMenu.children].forEach(li=>li.classList.remove('active')); }
 function activateRanking(stat){
-  currentSort.column = stat; currentSort.asc = !isDescPreferred(stat);
-  searchInput.value=''; rankingContent.style.display='block'; h2hSection.style.display='none'; gamesSection.style.display='none';
+  currentSort.column = stat;
+  // 기본 정렬 방향: ERA/WHIP → 오름차순, 그 외 지표 → 내림차순
+  currentSort.asc = isAscPreferred(stat);
+  searchInput.value='';
+  rankingContent.style.display='block'; h2hSection.style.display='none'; gamesSection.style.display='none';
   renderRanking(currentSort.column, currentSort.asc);
 }
 hitterMenu.onclick = e=>{ if(e.target.tagName==='LI'){ clearActiveMenu(); e.target.classList.add('active'); activateRanking(e.target.dataset.stat); } };
