@@ -377,6 +377,13 @@ let __allPlayersCache = null;
 let __hitterPercentileCutoffPA = 0;
 
 /* ======================= 데이터 로더 ======================= */
+async function loadPlayersFromJson(){
+  try{
+    const res = await fetch(PLAYER_JSON_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('players fetch fail');
+    return await res.json();
+  }catch(e){ console.error(e); return []; }
+}
 async function loadGameRecordJsonMerged(){
   try{
     const fetched = await Promise.allSettled(
@@ -390,34 +397,21 @@ async function loadGameRecordJsonMerged(){
     }
     const out = {version:"merged", games:[], events:[]};
     const gset = new Set(), eset = new Set();
-
     jsons.forEach(j=>{
-      // 게임 합치기(동일 gameId 중복 제거)
       (j.games||[]).forEach(g=>{
-        const gid = g.gameId ?? g.id;
-        if(!gid) return;
-        if(!gset.has(gid)){
-          gset.add(gid);
+        const id = g.gameId ?? g.id;
+        if(!gset.has(id)){
+          gset.add(id);
           out.games.push(g);
         }
       });
-
-      // ✅ 이벤트 합치기 — 고유키를 (gameId + id || 복합키)로!
-      (j.events||[]).forEach((e,idx)=>{
-        const gid = e.gameId ?? e.gid ?? e.id ?? 'nogame';
-        const baseId = e.id || `${e.inning||''}_${e.half||''}_${e.hitterName||''}_${e.pitcherName||''}_${e.createdAt||e.updatedAt||e.ts||idx}`;
-        const dedupKey = `${gid}__${baseId}`;
-        if(!eset.has(dedupKey)){
-          eset.add(dedupKey);
-          out.events.push(e);
-        }
+      (j.events||[]).forEach(e=>{
+        const id=e.id || `${e.gameId}_${e.inning}_${e.half}_${e.hitterName}_${e.pitcherName}_${e.createdAt||e.updatedAt||e.ts||''}`;
+        if(!eset.has(id)){ eset.add(id); out.events.push(e); }
       });
     });
     return out;
-  }catch(e){
-    console.error(e);
-    return {version:"0", games:[], events:[]};
-  }
+  }catch(e){ console.error(e); return {version:"0", games:[], events:[]}; }
 }
 
 /* ======================= 보조 유틸 ======================= */
@@ -701,7 +695,7 @@ function normGame(g){
   const idStr = (rawId==null) ? '' : String(rawId);
   return {
     id: idStr,
-    date: g.date || g.gameDate || g.dt || '',
+    date: g.date || '',
     awayTeam: g.awayTeam||g.away||g.visitor||'',
     homeTeam: g.homeTeam||g.home||''
   };
@@ -713,7 +707,7 @@ function normEvent(e){
   return {
     gameId: gidStr,
     ts: e.ts||e.timestamp||e.createdAt||e.updatedAt||null,
-    inning: Number.isFinite(+e.inning) ? +e.inning : e.inning,
+    inning: Number.isFinite(+e.inning) ? +e.inning : e.inning,  // 숫자 우선
     half: e.half||e.topbottom||e.tb||'',
     offenseTeam: e.offenseTeam||e.offense||e.battingTeam||'',
     defenseTeam: e.defenseTeam||e.defense||e.fieldingTeam||'',
@@ -836,7 +830,7 @@ const gameNoData = document.getElementById('gameNoData');
 async function prepareGameList(){
   const gr=await loadGameRecordJsonMerged();
   const list=(gr.games||[]).map(normGame).filter(g=>g && g.id);
-  list.sort((a,b)=>(a.date||'').localeCompare(b.date||'')); // ✅ 날짜 없이도 안전
+  list.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   gameSelect.innerHTML = '<option value="">(선택)</option>'+list.map(g=>`<option value="${g.id}">${g.date||'(날짜없음)'} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
 }
 function sortEvents(evs, mode){
