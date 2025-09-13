@@ -395,17 +395,18 @@ async function loadGameRecordJsonMerged(){
       // 게임 합치기(동일 gameId 중복 제거)
       (j.games||[]).forEach(g=>{
         const gid = g.gameId ?? g.id;
+        if(!gid) return;
         if(!gset.has(gid)){
           gset.add(gid);
           out.games.push(g);
         }
       });
 
-      // ✅ 이벤트 합치기 — 고유키를 (gameId + id)로!
-      (j.events||[]).forEach(e=>{
-        const gid = e.gameId ?? e.gid ?? e.id; // 혹시 gameId가 없게 기록된 경우 대비
-        const baseId = e.id || `${e.inning}_${e.half}_${e.hitterName}_${e.pitcherName}_${e.createdAt||e.updatedAt||e.ts||''}`;
-        const dedupKey = `${gid}__${baseId}`;   // <-- 핵심 변경
+      // ✅ 이벤트 합치기 — 고유키를 (gameId + id || 복합키)로!
+      (j.events||[]).forEach((e,idx)=>{
+        const gid = e.gameId ?? e.gid ?? e.id ?? 'nogame';
+        const baseId = e.id || `${e.inning||''}_${e.half||''}_${e.hitterName||''}_${e.pitcherName||''}_${e.createdAt||e.updatedAt||e.ts||idx}`;
+        const dedupKey = `${gid}__${baseId}`;
         if(!eset.has(dedupKey)){
           eset.add(dedupKey);
           out.events.push(e);
@@ -700,7 +701,7 @@ function normGame(g){
   const idStr = (rawId==null) ? '' : String(rawId);
   return {
     id: idStr,
-    date: g.date || '',
+    date: g.date || g.gameDate || g.dt || '',
     awayTeam: g.awayTeam||g.away||g.visitor||'',
     homeTeam: g.homeTeam||g.home||''
   };
@@ -712,7 +713,7 @@ function normEvent(e){
   return {
     gameId: gidStr,
     ts: e.ts||e.timestamp||e.createdAt||e.updatedAt||null,
-    inning: Number.isFinite(+e.inning) ? +e.inning : e.inning,  // 숫자 우선
+    inning: Number.isFinite(+e.inning) ? +e.inning : e.inning,
     half: e.half||e.topbottom||e.tb||'',
     offenseTeam: e.offenseTeam||e.offense||e.battingTeam||'',
     defenseTeam: e.defenseTeam||e.defense||e.fieldingTeam||'',
@@ -835,7 +836,7 @@ const gameNoData = document.getElementById('gameNoData');
 async function prepareGameList(){
   const gr=await loadGameRecordJsonMerged();
   const list=(gr.games||[]).map(normGame).filter(g=>g && g.id);
-  list.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  list.sort((a,b)=>(a.date||'').localeCompare(b.date||'')); // ✅ 날짜 없이도 안전
   gameSelect.innerHTML = '<option value="">(선택)</option>'+list.map(g=>`<option value="${g.id}">${g.date||'(날짜없음)'} · ${g.awayTeam} @ ${g.homeTeam}</option>`).join('');
 }
 function sortEvents(evs, mode){
@@ -963,5 +964,4 @@ goToInputBtn.onclick = ()=>{
 </script>
 </body>
 </html>
-
 
