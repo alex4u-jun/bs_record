@@ -366,21 +366,23 @@ const GAMERECORD_JSON_URLS = [
 ];
 
 /* ======================= 자격요건(규정) 설정 ======================= */
+/* 타자: 상위 70% 퍼센타일 규정, 동률 포함 / 투수: 규정 없음 */
 const QUALIFIER = {
   hitter: {
-    perInning: 3.1/9,   // 이닝당 0.344...
-    scale: 0.85,        // 규정 완화(예: 0.85 = 15% 낮춤)
-    floor: 12           // 최소 필요 타석 하한
+    mode: 'percentile',      // 'percentile' 고정
+    percentile: 0.70,        // 상위 70%
+    floor: 12                // 하한(너무 낮아지는 것 방지)
   },
   pitcher: {
-    perInning: 1/9,     // 이닝당 0.111...
-    scale: 0.90,        // 10% 낮춤 예시
-    floor: 5            // 최소 필요 이닝 하한
+    mode: 'none'             // 규정 없음(전원 규정 충족)
   }
 };
-// 계산된 팀별 필요치 저장용
-let __paNeedByTeam = {}; // {팀: 필요 PA}
-let __ipNeedByTeam = {}; // {팀: 필요 IP}
+
+/* 퍼센타일 규정 계산 결과 저장 */
+let __hitterPercentileCutoffPA = 0;   // 필요 최소 PA(동률 포함)
+/* 팀 이닝 기반 값들은 더이상 사용 안 하지만, 기존 함수들과의 호환을 위해 빈 객체로 둡니다. */
+let __paNeedByTeam = {};
+let __ipNeedByTeam = {};
 
 /* ======================= 데이터 로더 ======================= */
 async function loadPlayersFromJson(){
@@ -401,7 +403,6 @@ async function loadGameRecordJsonMerged(){
         jsons.push(await fr.value.json());
       }
     }
-    // 병합
     const out = {version:"merged", games:[], events:[]};
     const gset = new Set(), eset = new Set();
     jsons.forEach(j=>{
@@ -415,36 +416,19 @@ async function loadGameRecordJsonMerged(){
   }catch(e){ console.error(e); return {version:"0", games:[], events:[]}; }
 }
 
-/* ======================= 규정 계산: 팀별 half-inning 집계 ======================= */
-async function computeTeamInnings(){
-  const gr = await loadGameRecordJsonMerged();
-  const atkSet = new Set(); // (game|inning|half|offenseTeam)
-  const defSet = new Set(); // (game|inning|half|defenseTeam)
-  (gr.events||[]).forEach(e=>{
-    const g=e.gameId||e.id||e.gid; if(!g || e.inning==null) return;
-    const kA = `${g}|${e.inning}|${e.half}|${e.offenseTeam}`;
-    const kD = `${g}|${e.inning}|${e.half}|${e.defenseTeam}`;
-    atkSet.add(kA); defSet.add(kD);
-  });
-  const atk={}, def={};
-  for(const k of atkSet){ const team=k.split('|')[3]; if(team) atk[team]=(atk[team]||0)+1; }
-  for(const k of defSet){ const team=k.split('|')[3]; if(team) def[team]=(def[team]||0)+1; }
-  return {atk, def}; // {atk:{팀:공격 half-innings}, def:{팀:수비 half-innings}}
-}
-function buildQualifiers(innings){
-  const paNeedByTeam={}, ipNeedByTeam={};
+/* ======================= 퍼센타일 규정 계산 ======================= */
+function computePercentileCutoffPA(allPlayers, pct=QUALIFIER.hitter.percentile, floor=QUALIFIER.hitter.floor){
+  const paList = allPlayers.filter(p=>p.type==='타자')
+                           .map(p=>calculatePA(p))
+                           .filter(x=>Number.isFinite(x) && x>=0)
+                           .sort((a,b)=>a-b);
+  if(paList.length===0) return floor||0;
 
-  Object.entries(innings.atk).forEach(([team, offInnings])=>{
-    const raw = QUALIFIER.hitter.perInning * QUALIFIER.hitter.scale * offInnings;
-    paNeedByTeam[team] = Math.max(Math.ceil(raw), QUALIFIER.hitter.floor);
-  });
-
-  Object.entries(innings.def).forEach(([team, defInnings])=>{
-    const raw = QUALIFIER.pitcher.perInning * QUALIFIER.pitcher.scale * defInnings;
-    ipNeedByTeam[team] = Math.max(Math.ceil(raw), QUALIFIER.pitcher.floor);
-  });
-
-  return {paNeedByTeam, ipNeedByTeam};
+  // 상위 pct ⇒ 하위 (1-pct) 퍼센타일 값(P30)을 컷오프로 사용
+  const q = 1 - (pct ?? 0.7);            // 예: 0.30
+  const idx = Math.floor((paList.length-1) * q);
+  const cutoff = paList[idx];
+  return Math.max(cutoff, floor||0);
 }
 
 /* ======================= 엘리먼트 ======================= */
@@ -630,13 +614,14 @@ function applyQualifiersSplit(list, stat){
 
   list.forEach(p=>{
     if(isH){
-      const need = __paNeedByTeam[p.team]||0;
+      // 타자: 퍼센타일 규정(동률 포함)
+      const need = __hitterPercentileCutoffPA || 0;
       const have = calculatePA(p);
       (have >= need ? qualified : nonQualified).push({...p, __need:need, __have:have});
     }else{
-      const need = __ipNeedByTeam[p.team]||0;
+      // 투수: 규정 없음 → 전원 규정 충족
       const have = (p.stats['이닝']||0);
-      (have >= need ? qualified : nonQualified).push({...p, __need:need, __have:have});
+      qualified.push({...p, __need:null, __have:have});
     }
   });
 
@@ -663,9 +648,10 @@ function createRankingTable(players, stat, nonQualifiers){
   // 규정 충족자
   players.forEach((p,i)=>{
     const unit = hitterStatsForRanking.includes(stat) ? 'PA' : 'IP';
+    const tipNeed = (p.__need==null) ? '' : `필요 ${p.__need} ${unit} / `;
     const tr=document.createElement('tr');
     tr.innerHTML = `<td>${getMedalIcon(i)}${i+1}</td>
-                    <td class="player-name" title="필요 ${p.__need||0} ${unit} / 보유 ${p.__have||0}">
+                    <td class="player-name" title="${tipNeed}보유 ${p.__have||0}">
                       ${p.name}
                     </td>
                     <td>${getStatDisplay(p,stat)}</td>`;
@@ -673,16 +659,15 @@ function createRankingTable(players, stat, nonQualifiers){
     tbody.appendChild(tr);
   });
 
-  // 경계선 + 규정 미달자
+  // 경계선 + 규정 미달자(투수는 항상 0명)
   if(nonQualifiers && nonQualifiers.length){
     const sep=document.createElement('tr');
     sep.innerHTML=`<td colspan="3" style="border-top:3px solid #c43; text-align:center; font-weight:800;">규정 미달</td>`;
     tbody.appendChild(sep);
     nonQualifiers.forEach(p=>{
-      const unit = hitterStatsForRanking.includes(stat) ? 'PA' : 'IP';
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>–</td>
-                      <td class="player-name" title="필요 ${p.__need||0} ${unit} / 보유 ${p.__have||0}">
+                      <td class="player-name" title="필요 ${p.__need||0} PA / 보유 ${p.__have||0}">
                         ${p.name}
                       </td>
                       <td>${getStatDisplay(p,stat)}</td>`;
@@ -719,7 +704,6 @@ async function renderRanking(stat, asc=true){
     else    list.sort((a,b)=>pitcherTieBreakerDesc(a,b,stat));
   }
 
-  // 규정 분리
   const {qualified, nonQualified} = applyQualifiersSplit(list, stat);
   rankingContent.appendChild(createRankingTable(qualified, stat, nonQualified));
 }
@@ -829,7 +813,6 @@ function calcAggFromEvents(events){
   const OPS = OBP + SLG;
   return {PA,H,_2B,_3B,HR,BB,SO,RBI,R,AVG,OBP,SLG,OPS};
 }
-// 검색
 h2hSearchBtn.addEventListener('click', async ()=>{
   const pitcher=h2hPitcher.value.trim();
   const hitter =h2hHitter.value.trim();
@@ -868,7 +851,6 @@ h2hSearchBtn.addEventListener('click', async ()=>{
   const agg=calcAggFromEvents(evs);
   h2hAggBody.innerHTML = `<tr><td>${agg.PA}</td><td>${(agg.H-agg._2B-agg._3B-agg.HR)}</td><td>${agg._2B}</td><td>${agg._3B}</td><td>${agg.HR}</td><td>${agg.BB}</td><td>${agg.SO}</td><td>${agg.RBI}</td><td>${agg.R}</td><td>${agg.AVG.toFixed(3)}</td><td>${agg.OBP.toFixed(3)}</td><td>${agg.SLG.toFixed(3)}</td><td>${agg.OPS.toFixed(3)}</td></tr>`;
 });
-// 정렬/필터 바뀌면 즉시 다시 검색
 [h2hSort,h2hGameSelect].forEach(el=>el.addEventListener('change',()=>h2hSearchBtn.click()));
 [h2hPitcher,h2hHitter].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') h2hSearchBtn.click(); }));
 
@@ -946,11 +928,12 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await prepareH2HForm();
   await prepareGameList();
 
-  // 팀별 규정(완화) 계산
-  const innings = await computeTeamInnings();
-  const q = buildQualifiers(innings);
-  __paNeedByTeam = q.paNeedByTeam || {};
-  __ipNeedByTeam = q.ipNeedByTeam || {};
+  // 타자 퍼센타일 규정 컷오프 계산(동률 포함)
+  const allPlayers = await loadPlayersFromJson();
+  __hitterPercentileCutoffPA = computePercentileCutoffPA(allPlayers);
+
+  // 선택된 지표가 있으면 즉시 렌더
+  if(currentSort.column) renderRanking(currentSort.column, currentSort.asc);
 });
 
 /* ======================= 접근 제어 ======================= */
