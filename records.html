@@ -65,11 +65,11 @@ section.content{
 /* ===================== 테이블 ===================== */
 .table{
   width:100%; border-collapse: collapse; margin-top:10px;
-  table-layout: fixed;           /* 모바일에서 칼럼 너비 자동맞춤 */
+  table-layout: fixed;
 }
 th, td{
   border:1px solid var(--border); padding:10px 12px; text-align:center;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* 말줄임 */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-size:.95rem;
 }
 th{ background: var(--thead); color: var(--theadText); font-weight:800; position: sticky; top:0; z-index:1; }
@@ -109,7 +109,7 @@ input[type="text"], select{ width:100%; padding:10px; border-radius:10px; border
 .sb-badge{ background:rgba(255,255,255,.1); padding:2px 12px; border-radius:999px; font-size: .85em; font-variant-numeric: tabular-nums; }
 .sb-sep{ opacity:.6; font-weight:900; }
 
-/* ===================== MVP 배너(복구) ===================== */
+/* ===================== MVP 배너 ===================== */
 #mvpBanner{
   position:relative; width:100%; max-width:1100px; height:190px;
   margin: 0 auto 20px; border-radius:16px; overflow:hidden;
@@ -140,7 +140,7 @@ input[type="text"], select{ width:100%; padding:10px; border-radius:10px; border
 @keyframes mvpPulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
 #mvpSub{ margin-top:8px; font-weight:800; font-size:.95rem; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.35); }
 
-/* ===================== 모바일 보기(컴팩트) ===================== */
+/* ===================== 모바일 보기 ===================== */
 body.compact .container{ flex-wrap: wrap; }
 body.compact nav.menu{ width:100%; order:1; }
 body.compact section.content{ order:2; width:100%; }
@@ -148,7 +148,6 @@ body.compact nav.menu ul{ display:flex; gap:6px; flex-wrap:wrap; padding:8px; }
 body.compact nav.menu li{ flex: 1 0 auto; padding:8px; text-align:center; }
 body.compact .row, body.compact .row-2{ grid-template-columns: 1fr; }
 
-/* 좁은 화면 대응(자동 꽉 차게) */
 @media (max-width: 680px){
   body{ max-width:100%; margin: 0; padding: 12px 8px; }
   .container{ flex-wrap: wrap; gap:12px; }
@@ -181,7 +180,7 @@ footer{ margin-top:20px; opacity:.65; font-size:.9rem; }
     </div>
   </div>
 
-  <!-- ===== MVP 배너 (복구) ===== -->
+  <!-- ===== MVP 배너 ===== -->
   <div id="mvpBanner">
     <div class="mvp-core">
       <div id="mvpMain">MVP: 한결</div>
@@ -366,6 +365,23 @@ const GAMERECORD_JSON_URLS = [
   "https://alex4u-jun.github.io/bs_record/gamerecord_2.json",
 ];
 
+/* ======================= 자격요건(규정) 설정 ======================= */
+const QUALIFIER = {
+  hitter: {
+    perInning: 3.1/9,   // 이닝당 0.344...
+    scale: 0.85,        // 규정 완화(예: 0.85 = 15% 낮춤)
+    floor: 12           // 최소 필요 타석 하한
+  },
+  pitcher: {
+    perInning: 1/9,     // 이닝당 0.111...
+    scale: 0.90,        // 10% 낮춤 예시
+    floor: 5            // 최소 필요 이닝 하한
+  }
+};
+// 계산된 팀별 필요치 저장용
+let __paNeedByTeam = {}; // {팀: 필요 PA}
+let __ipNeedByTeam = {}; // {팀: 필요 IP}
+
 /* ======================= 데이터 로더 ======================= */
 async function loadPlayersFromJson(){
   try{
@@ -397,6 +413,38 @@ async function loadGameRecordJsonMerged(){
     });
     return out;
   }catch(e){ console.error(e); return {version:"0", games:[], events:[]}; }
+}
+
+/* ======================= 규정 계산: 팀별 half-inning 집계 ======================= */
+async function computeTeamInnings(){
+  const gr = await loadGameRecordJsonMerged();
+  const atkSet = new Set(); // (game|inning|half|offenseTeam)
+  const defSet = new Set(); // (game|inning|half|defenseTeam)
+  (gr.events||[]).forEach(e=>{
+    const g=e.gameId||e.id||e.gid; if(!g || e.inning==null) return;
+    const kA = `${g}|${e.inning}|${e.half}|${e.offenseTeam}`;
+    const kD = `${g}|${e.inning}|${e.half}|${e.defenseTeam}`;
+    atkSet.add(kA); defSet.add(kD);
+  });
+  const atk={}, def={};
+  for(const k of atkSet){ const team=k.split('|')[3]; if(team) atk[team]=(atk[team]||0)+1; }
+  for(const k of defSet){ const team=k.split('|')[3]; if(team) def[team]=(def[team]||0)+1; }
+  return {atk, def}; // {atk:{팀:공격 half-innings}, def:{팀:수비 half-innings}}
+}
+function buildQualifiers(innings){
+  const paNeedByTeam={}, ipNeedByTeam={};
+
+  Object.entries(innings.atk).forEach(([team, offInnings])=>{
+    const raw = QUALIFIER.hitter.perInning * QUALIFIER.hitter.scale * offInnings;
+    paNeedByTeam[team] = Math.max(Math.ceil(raw), QUALIFIER.hitter.floor);
+  });
+
+  Object.entries(innings.def).forEach(([team, defInnings])=>{
+    const raw = QUALIFIER.pitcher.perInning * QUALIFIER.pitcher.scale * defInnings;
+    ipNeedByTeam[team] = Math.max(Math.ceil(raw), QUALIFIER.pitcher.floor);
+  });
+
+  return {paNeedByTeam, ipNeedByTeam};
 }
 
 /* ======================= 엘리먼트 ======================= */
@@ -455,7 +503,6 @@ let currentSort = { column: null, asc: true };
     themeToggle.textContent = next==='dark'?'☀️ 라이트 모드':'🌙 다크 모드';
   });
 
-  // 모바일 보기(레이아웃 컴팩트)
   const savedCompact = localStorage.getItem('record_mobile');
   if(savedCompact === '1') document.body.classList.add('compact');
   mobileToggle.textContent = document.body.classList.contains('compact') ? '🖥️ 데스크톱 보기' : '📱 모바일 보기';
@@ -468,11 +515,9 @@ let currentSort = { column: null, asc: true };
 
 /* ======================= 보조 유틸 ======================= */
 function isDescPreferred(stat){
-  // 숫자 클수록 좋은 지표들 → 기본 내림차순
   return ['타율','홈런','출루율','OPS','타점','승리','세이브','홀드','삼진','WAR'].includes(stat);
 }
 function isAscPreferred(stat){
-  // 숫자 작을수록 좋은 지표들 → 기본 오름차순
   return ['ERA','WHIP'].includes(stat);
 }
 function filterByName(players, keyword){
@@ -577,8 +622,29 @@ function getStatDisplay(p, stat){
 }
 function getMedalIcon(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':''; }
 
+/* ======================= 규정 적용 도우미 ======================= */
+function applyQualifiersSplit(list, stat){
+  const isH = hitterStatsForRanking.includes(stat);
+  const qualified = [];
+  const nonQualified = [];
+
+  list.forEach(p=>{
+    if(isH){
+      const need = __paNeedByTeam[p.team]||0;
+      const have = calculatePA(p);
+      (have >= need ? qualified : nonQualified).push({...p, __need:need, __have:have});
+    }else{
+      const need = __ipNeedByTeam[p.team]||0;
+      const have = (p.stats['이닝']||0);
+      (have >= need ? qualified : nonQualified).push({...p, __need:need, __have:have});
+    }
+  });
+
+  return {qualified, nonQualified};
+}
+
 /* ======================= 랭킹 렌더 ======================= */
-function createRankingTable(players, stat){
+function createRankingTable(players, stat, nonQualifiers){
   const table=document.createElement('table'); table.className='table';
   const thead=document.createElement('thead'); const tbody=document.createElement('tbody');
   const hr=document.createElement('tr');
@@ -588,28 +654,53 @@ function createRankingTable(players, stat){
       th.style.cursor='pointer';
       th.addEventListener('click',()=>{ currentSort.asc=!currentSort.asc; renderRanking(stat, currentSort.asc); });
       th.textContent += currentSort.asc?' ▲':' ▼';
+      th.title='헤더 클릭으로 정렬 전환';
     }
     hr.appendChild(th);
   });
   thead.appendChild(hr);
+
+  // 규정 충족자
   players.forEach((p,i)=>{
+    const unit = hitterStatsForRanking.includes(stat) ? 'PA' : 'IP';
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${getMedalIcon(i)}${i+1}</td><td class="player-name">${p.name}</td><td>${getStatDisplay(p,stat)}</td>`;
+    tr.innerHTML = `<td>${getMedalIcon(i)}${i+1}</td>
+                    <td class="player-name" title="필요 ${p.__need||0} ${unit} / 보유 ${p.__have||0}">
+                      ${p.name}
+                    </td>
+                    <td>${getStatDisplay(p,stat)}</td>`;
     tr.querySelector('.player-name').onclick = ()=>{ location.href = `player_detail.html?name=${encodeURIComponent(p.name)}&type=${encodeURIComponent(p.type)}`; };
     tbody.appendChild(tr);
   });
+
+  // 경계선 + 규정 미달자
+  if(nonQualifiers && nonQualifiers.length){
+    const sep=document.createElement('tr');
+    sep.innerHTML=`<td colspan="3" style="border-top:3px solid #c43; text-align:center; font-weight:800;">규정 미달</td>`;
+    tbody.appendChild(sep);
+    nonQualifiers.forEach(p=>{
+      const unit = hitterStatsForRanking.includes(stat) ? 'PA' : 'IP';
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>–</td>
+                      <td class="player-name" title="필요 ${p.__need||0} ${unit} / 보유 ${p.__have||0}">
+                        ${p.name}
+                      </td>
+                      <td>${getStatDisplay(p,stat)}</td>`;
+      tr.querySelector('.player-name').onclick = ()=>{ location.href = `player_detail.html?name=${encodeURIComponent(p.name)}&type=${encodeURIComponent(p.type)}`; };
+      tbody.appendChild(tr);
+    });
+  }
+
   table.appendChild(thead); table.appendChild(tbody); return table;
 }
 function hitterTieBreakerDesc(a,b,stat){
   const va=getStatValue(a,stat), vb=getStatValue(b,stat);
   if(vb!==va) return vb-va;
-  // 동률이면 PA 많은 선수가 우위
   return calculatePA(b) - calculatePA(a);
 }
 function pitcherTieBreakerDesc(a,b,stat){
   const va=getStatValue(a,stat), vb=getStatValue(b,stat);
   if(vb!==va) return vb-va;
-  // 동률이면 이닝 많은 선수가 우위
   return (b.stats['이닝']||0) - (a.stats['이닝']||0);
 }
 async function renderRanking(stat, asc=true){
@@ -620,7 +711,7 @@ async function renderRanking(stat, asc=true){
   if(stat==='WAR'){ const map=buildWarMap(all.filter(p=>p.type==='타자')); list.forEach(p=>p.__war=map[p.name]||0); }
   list = filterByName(list, (searchInput.value||'').trim());
 
-  // === 정렬: asc면 오름차순, 아니면 내림차순(동률 타이브레이커) ===
+  // 정렬
   if(asc){
     list.sort((a,b)=>getStatValue(a,stat)-getStatValue(b,stat));
   }else{
@@ -628,7 +719,9 @@ async function renderRanking(stat, asc=true){
     else    list.sort((a,b)=>pitcherTieBreakerDesc(a,b,stat));
   }
 
-  rankingContent.appendChild(createRankingTable(list, stat));
+  // 규정 분리
+  const {qualified, nonQualified} = applyQualifiersSplit(list, stat);
+  rankingContent.appendChild(createRankingTable(qualified, stat, nonQualified));
 }
 
 /* ======================= MVP/팀 통계 ======================= */
@@ -642,7 +735,6 @@ function loadRecentMvp(){
       return;
     }catch(_){}
   }
-  // 기본 문구
   mvpMain.textContent = 'MVP: 한결';
   mvpSub.textContent  = 'CSIA · 타자';
 }
@@ -801,7 +893,6 @@ gameLoadBtn.addEventListener('click', async ()=>{
 
   let evs=(gr.events||[]).map(normEvent).filter(e=>e && e.gameId===id);
 
-  // 팀 필터: 공격/수비 둘 중 하나라도 일치하면 포함
   const team = gameTeamFilter.value;
   if(team) evs = evs.filter(e=> e.offenseTeam===team || e.defenseTeam===team);
 
@@ -817,15 +908,13 @@ gameLoadBtn.addEventListener('click', async ()=>{
 
   gameSummary.textContent = `이벤트 ${evs.length}건`;
 });
-// 바뀌면 바로 재로딩
 [gameTeamFilter, gameSort].forEach(el=>el.addEventListener('change', ()=>{ if(gameSelect.value) gameLoadBtn.click(); }));
 
 /* ======================= 메뉴/검색 ======================= */
 function clearActiveMenu(){ [...hitterMenu.children, ...pitcherMenu.children, ...extraMenu.children].forEach(li=>li.classList.remove('active')); }
 function activateRanking(stat){
   currentSort.column = stat;
-  // 기본 정렬 방향: ERA/WHIP → 오름차순, 그 외 지표 → 내림차순
-  currentSort.asc = isAscPreferred(stat);
+  currentSort.asc = isAscPreferred(stat); // ERA/WHIP만 오름차순 기본
   searchInput.value='';
   rankingContent.style.display='block'; h2hSection.style.display='none'; gamesSection.style.display='none';
   renderRanking(currentSort.column, currentSort.asc);
@@ -856,6 +945,12 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await calculateTeamStats();
   await prepareH2HForm();
   await prepareGameList();
+
+  // 팀별 규정(완화) 계산
+  const innings = await computeTeamInnings();
+  const q = buildQualifiers(innings);
+  __paNeedByTeam = q.paNeedByTeam || {};
+  __ipNeedByTeam = q.ipNeedByTeam || {};
 });
 
 /* ======================= 접근 제어 ======================= */
