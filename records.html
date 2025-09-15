@@ -17,14 +17,10 @@
 }
 [data-theme="dark"]{
   /* 다크모드 대비 강화 + 그라데이션 유지 */
-  --bg:#0b1224;
-  --bg-grad1:#070f22;
-  --text:#e9f1ff;
-  --sub:#bcd0ff;
+  --bg:#0b1224; --bg-grad1:#070f22;
+  --text:#e9f1ff; --sub:#bcd0ff;
   --brand:#8fb2ff; --brand-2:#a7c2ff;
-  --card:#0f1a30;
-  --muted:#162347;
-  --border:#243565;
+  --card:#0f1a30; --muted:#162347; --border:#243565;
   --ring:rgba(143,178,255,.35);
   --shadow:0 12px 30px rgba(0,0,0,.45);
 }
@@ -43,9 +39,11 @@ body{
   border-bottom:1px solid var(--border);
 }
 [data-theme="dark"] .header{ background:rgba(15,26,46,.6) }
+
 .wrap{ max-width:1180px; margin:0 auto; padding:14px 16px; }
 .brand{ font-weight:900; letter-spacing:.2px; font-size:22px; color:var(--brand); text-decoration:none }
 .nav{ display:flex; gap:8px; align-items:center; width:100%; justify-content:space-between }
+
 .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
 .tab{
   padding:8px 14px; border-radius:999px; color:var(--sub); font-weight:800; cursor:pointer;
@@ -53,6 +51,7 @@ body{
 }
 .tab.active{ color:#fff; background:var(--brand); box-shadow:0 6px 18px var(--ring); }
 .tab:hover{ color:var(--brand); background:var(--muted) }
+
 .iconbtn{
   border:1.5px solid var(--border); background:var(--card); color:var(--text);
   border-radius:12px; padding:8px 10px; cursor:pointer; box-shadow:var(--shadow);
@@ -91,7 +90,10 @@ body{
   min-height:220px; display:flex; align-items:center; justify-content:center;
 }
 .sb-inner{ text-align:center }
-.sb-line{ display:flex; align-items:center; gap:14px; font-weight:1000; font-size:40px; flex-wrap:wrap; justify-content:center }
+.sb-line{
+  display:flex; align-items:center; gap:14px; font-weight:1000;
+  font-size:40px; flex-wrap:nowrap; justify-content:center; white-space:nowrap;
+}
 .sb-badge{ padding:6px 14px; border-radius:999px; background:rgba(255,255,255,.12); font-size:28px }
 .sb-away{ color:#6aa4ff; text-shadow:0 0 6px rgba(106,164,255,.4) }
 .sb-home{ color:#ff7b7b; text-shadow:0 0 6px rgba(255,123,123,.4) }
@@ -103,7 +105,7 @@ body{
   background:linear-gradient(135deg,#2f67ff 0 50%,#ff2f59 50% 100%); color:#fff;
   border-radius:18px;
 }
-#mvpMain{ font-size:34px; font-weight:1000; line-height:1; text-shadow:0 4px 16px rgba(0,0,0,.35) }
+#mvpMain{ font-size:34px; font-weight:1000; line-height:1; text-shadow:0 4px 16px rgba(0,0,0,.35); white-space:nowrap }
 #mvpSub{ font-weight:800; opacity:.9; margin-top:6px }
 
 /* ===================== TABLE ===================== */
@@ -151,29 +153,61 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
 .game-title{ font-weight:900 }
 .score-pill{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:var(--muted); font-weight:900 }
 
-/* Responsive */
+/* ===================== MOBILE LAYOUT (<=560px) ===================== */
+@media (max-width: 560px){
+  .wrap{ padding:10px 12px }
+  /* 헤더 3줄 레이아웃 */
+  .topbar{
+    display:grid; grid-template-rows:auto auto auto; gap:8px;
+  }
+  .brand{ font-size:20px }
+  .tabs{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:6px;
+  }
+  .tab{ padding:8px 8px; text-align:center }
+  .actions-row{
+    display:flex; gap:8px; justify-content:flex-end;
+  }
+  /* 상단 바가 공간 차지 줄이도록 */
+  .header{ border-bottom-width:0.5px }
+  .tile{ min-height:90px; font-size:18px }
+  .card{ padding:14px }
+  .section{ margin:12px auto }
+  /* 점수판 한 줄 강제 + 크기 자동조절 */
+  .sb-line{ font-size:clamp(18px, 6vw, 30px); gap:10px }
+  .sb-badge{ font-size:clamp(16px, 5vw, 24px); padding:4px 10px }
+  .sb-date{ font-size:12px }
+  /* MVP 한 줄 */
+  #mvpMain{ font-size:clamp(18px, 7vw, 26px) }
+  #mvpBanner{ min-height:90px }
+}
+
+/* ===================== DESKTOP RESPONSIVE ===================== */
 @media (max-width: 880px){
   .grid{ grid-template-columns: repeat(6, 1fr) }
   .card{ grid-column: 1 / -1 }
   .row,.row-2{ grid-template-columns:1fr }
-  .sb-line{ font-size:32px }
-  .sb-badge{ font-size:24px }
 }
 </style>
 </head>
 <body>
   <!-- ===================== HEADER ===================== -->
   <div class="header">
-    <div class="wrap nav">
-      <a href="#" id="brandHome" class="brand">CSIALeaders</a>
-      <div style="display:flex; gap:10px; align-items:center">
-        <div class="tabs">
-          <span class="tab active" data-target="home">홈</span>
-          <span class="tab" data-target="member">부원 소개</span>
-          <span class="tab" data-target="record">기록 및 통계 (stats)</span>
-          <span class="tab" data-target="h2h">매치업 검색 (H2H)</span>
-          <span class="tab" data-target="games">경기 (games)</span>
-        </div>
+    <div class="wrap topbar">
+      <!-- 1줄: 브랜드 -->
+      <div><a href="#" id="brandHome" class="brand">CSIALeaders</a></div>
+
+      <!-- 2줄: 5개 탭 동일 크기 -->
+      <div class="tabs">
+        <span class="tab active" data-target="home">홈</span>
+        <span class="tab" data-target="member">부원 소개</span>
+        <span class="tab" data-target="record">기록 및 통계</span>
+        <span class="tab" data-target="h2h">매치업 검색</span>
+        <span class="tab" data-target="games">경기</span>
+      </div>
+
+      <!-- 3줄: 우측 정렬 액션 -->
+      <div class="actions-row">
         <button id="themeToggle" class="iconbtn" title="테마 전환">🌙</button>
         <button id="goToInput" class="iconbtn primary">기록 입력</button>
       </div>
@@ -285,7 +319,6 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
         <div><label>경기(선택)</label><select id="h2hGameSelect"><option value="">전체 경기</option></select></div>
         <div><label>정렬</label><select id="h2hSort"><option value="time_desc">최신순</option><option value="time_asc">오래된순</option><option value="inning">이닝순</option></select></div>
       </div>
-      <!-- 버튼을 오른쪽으로: spacer 사용 -->
       <div id="h2hTools" class="tools">
         <span class="badge" id="h2hSummary">대기중</span>
         <span class="spacer"></span>
@@ -401,7 +434,7 @@ async function loadGameRecordMerged(){
         if(!gset.has(id)){ gset.add(id); out.games.push(g); }
       });
       (j.events||[]).forEach(e=>{
-        // === 중복 제거 기준 강화: gameId + id 조합으로 ===
+        // 중복 제거: gameId + id
         const gid=String(e.gameId||''); const eid=String(e.id||(e.createdAt??e.updatedAt??e.ts??Math.random()));
         const key = gid + "____" + eid;
         if(!eset.has(key)){ eset.add(key); out.events.push(e); }
@@ -734,7 +767,6 @@ function renderPAMatrix(events){
   }
   const wrap=document.createElement('div');
   Object.entries(teamMap).forEach(([team,rows])=>{
-    const head=document.createElement('div'); head.style="font-weight:900;margin:8px 0"; head.textContent=`팀: ${team}`;
     const tbl=document.createElement('table'); tbl.className='table';
     const thead=document.createElement('thead'); const hdr=document.createElement('tr');
     hdr.innerHTML='<th>타자명</th>'+Array.from({length:maxInning},(_,i)=>`<th>${i+1}</th>`).join(''); thead.appendChild(hdr);
@@ -799,9 +831,7 @@ function renderEventTable(events){
 })();
 
 // 초기 보이기: 홈
-showSec('home');
 </script>
 </body>
 </html>
-
 
