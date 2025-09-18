@@ -1,0 +1,28 @@
+[
+  { "name": "양준혁", "age": 14, "school": "MS", "class": 2, "team": "Leaders", "position": "SS", "backNumber": "10" },
+  { "name": "한서진", "age": 14, "school": "MS", "class": 3, "team": "Leaders", "position": "3B", "backNumber": "23" },
+  { "name": "박재휘", "age": 17, "school": "HS", "class": 1, "team": "CSIA", "position": "1B / P", "backNumber": "37" },
+  { "name": "정민준", "age": 17, "school": "HS", "class": 1, "team": "Leaders", "position": "2B", "backNumber": "51" },
+  { "name": "배인성", "age": 17, "school": "HS", "class": 1, "team": "Leaders", "position": "3B / P", "backNumber": "91" },
+
+  { "name": "성일운", "age": 16, "school": "MS", "class": 1, "team": "CSIA", "position": "C", "backNumber": "27" },
+  { "name": "한결",   "age": 16, "school": "MS", "class": 4, "team": "CSIA", "position": "3B", "backNumber": "17" },
+  { "name": "강세영", "age": 14, "school": "MS", "class": 1, "team": "CSIA", "position": "2B", "backNumber": "52" },
+  { "name": "김준우", "age": 14, "school": "MS", "class": 1, "team": "Leaders", "position": "RF", "backNumber": "25" },
+  { "name": "김태호", "age": 14, "school": "MS", "class": 2, "team": "CSIA", "position": "CF", "backNumber": "19" },
+  { "name": "김동혁", "age": 14, "school": "MS", "class": 3, "team": "Leaders", "position": "CF", "backNumber": "-" },
+  { "name": "우지성", "age": 14, "school": "MS", "class": 3, "team": "CSIA", "position": "-",  "backNumber": "-" },
+  { "name": "이시현", "age": 14, "school": "MS", "class": 3, "team": "CSIA", "position": "-",  "backNumber": "-" },
+
+  { "name": "김도엽", "age": 17, "school": "HS", "class": 4, "team": "CSIA", "position": "LF", "backNumber": "71" },
+  { "name": "김민석", "age": 17, "school": "HS", "class": 2, "team": "-",      "position": "CF", "backNumber": "77" },
+  { "name": "진승우", "age": 17, "school": "HS", "class": 2, "team": "Leaders", "position": "C / P", "backNumber": "7" },
+  { "name": "설승환", "age": 17, "school": "HS", "class": 3, "team": "Leaders", "position": "CF", "backNumber": "4" },
+  { "name": "이원준", "age": 17, "school": "HS", "class": 3, "team": "CSIA",   "position": "SS / P", "backNumber": "57" },
+  { "name": "최영우", "age": 17, "school": "HS", "class": 3, "team": "Leaders", "position": "RF", "backNumber": "30" },
+  { "name": "강상현", "age": 17, "school": "HS", "class": 4, "team": "Leaders", "position": "3B / P", "backNumber": "50" },
+  { "name": "고예준", "age": 17, "school": "HS", "class": 4, "team": "CSIA",   "position": "LF", "backNumber": "2" },
+  { "name": "김태준", "age": 17, "school": "HS", "class": 4, "team": "Leaders", "position": "LF", "backNumber": "16" },
+  { "name": "우현민", "age": 17, "school": "HS", "class": 4, "team": "CSIA",   "position": "REF", "backNumber": "-" },
+  { "name": "이동권", "age": 17, "school": "HS", "class": 4, "team": "CSIA",   "position": "1B / P", "backNumber": "1" }
+]
