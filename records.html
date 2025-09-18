@@ -263,11 +263,11 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
   <section class="section" id="sec-member" hidden>
     <div class="card lg">
       <h3>부원 소개</h3>
-      <div class="sub">소속 팀 · 포지션 · 학년</div>
+      <div class="sub">소속 팀 · 포지션 · 학년 · 반 · 나이</div>
       <div class="tools" style="margin-top:10px">
         <input id="memSearch" placeholder="이름 검색" />
-        <select id="memTeam"><option value="">팀 전체</option><option>Leaders</option><option>CSIA</option></select>
-        <select id="memPos"><option value="">포지션 전체</option><option>투수</option><option>내야수</option><option>외야수</option><option>포수</option></select>
+        <select id="memTeam"><option value="">팀 전체</option></select>
+        <select id="memPos"><option value="">포지션 전체</option></select>
       </div>
       <div class="people-grid" id="memberGrid"></div>
       <p class="no-data" id="memberNo">데이터 로딩 중…</p>
@@ -387,6 +387,7 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
 /* ============= BASIC CONFIG ============= */
 const SCOREBOARD = { date:'2025-09-12', awayTeam:'CSIA', awayScore:2, homeTeam:'Leaders', homeScore:2 };
 const PLAYER_JSON_URL = "https://alex4u-jun.github.io/bs_record/players.json";
+const MEMBER_JSON_URL = "https://alex4u-jun.github.io/bs_record/players_introduce.json"; // ⬅️ 부원 소개 전용
 const GAMERECORD_JSON_URLS = [
   "https://alex4u-jun.github.io/bs_record/gamerecord_1.json",
   "https://alex4u-jun.github.io/bs_record/gamerecord_2.json",
@@ -448,6 +449,32 @@ async function loadPlayers(){
     return __players;
   }catch(e){ console.error(e); return []; }
 }
+
+/* ⬇️ 부원 소개 전용 로더 (introduce → 실패 시 players.json 폴백 매핑) */
+let __members = null;
+async function loadMembers(){
+  if(__members) return __members;
+  try{
+    const r = await fetch(MEMBER_JSON_URL, {cache:'no-store'});
+    if(!r.ok) throw new Error('introduce not found');
+    const arr = await r.json();
+    __members = Array.isArray(arr) ? arr : [];
+    return __members;
+  }catch(_){
+    // 폴백: players.json을 멤버 카드용으로 변환
+    const ps = await loadPlayers();
+    __members = ps.map(p=>({
+      name: p.name,
+      team: p.team || '',
+      position: p.position || p.type || '',
+      grade: p.grade ?? '',
+      class: p.class ?? '',
+      age: p.age ?? ''
+    }));
+    return __members;
+  }
+}
+
 async function loadGameRecordMerged(){
   try{
     const settled=await Promise.allSettled(GAMERECORD_JSON_URLS.map(u=>fetch(u,{cache:'no-store'})));
@@ -509,25 +536,59 @@ function gameIdToDate8(e, gamesMap){
 /* ============= MEMBER (카드) ============= */
 const memberGrid=document.getElementById('memberGrid'), memberNo=document.getElementById('memberNo');
 const memSearch=document.getElementById('memSearch'), memTeam=document.getElementById('memTeam'), memPos=document.getElementById('memPos');
+
 function mkCard(p){
-  const div=document.createElement('div'); div.className='person-card';
-  div.innerHTML = `<div class="person-name">${p.name}</div>
-                   <div class="person-sub">${p.team||'-'} · ${p.position||p.type||'-'} · ${p.grade||'-'}</div>`;
+  const team = p.team || '-';
+  const pos  = p.position || p.type || '-';
+  const num  = (p.backNumber && String(p.backNumber).trim() !== '') ? p.backNumber : '-';
+  const age  = (p.age != null) ? `${p.age}세` :
+               (p.school === 'MS' ? '중학생' : p.school === 'HS' ? '고등학생' : '');
+
+  const div = document.createElement('div');
+  div.className = 'person-card';
+  div.innerHTML = `
+    <div class="person-name">${p.name}</div>
+    <div class="person-sub">${team} · ${pos} · ${num} · ${age}</div>
+  `;
   return div;
 }
+
+
+/** select 박스를 데이터에 맞춰 동적 세팅 (초기 1회) */
+let __memberFiltersHydrated = false;
+function hydrateMemberFilters(members){
+  if(__memberFiltersHydrated) return;
+  // 팀 옵션
+  const teams = [...new Set(members.map(m=>m.team).filter(Boolean))].sort();
+  memTeam.innerHTML = `<option value="">팀 전체</option>` + teams.map(t=>`<option>${t}</option>`).join('');
+  // 포지션 옵션
+  const poss = [...new Set(members.map(m=>(m.position||'').trim()).filter(Boolean))].sort();
+  memPos.innerHTML = `<option value="">포지션 전체</option>` + poss.map(p=>`<option>${p}</option>`).join('');
+  __memberFiltersHydrated = true;
+}
+
 async function renderMembers(){
-  const players=await loadPlayers();
-  memberNo.hidden=true;
-  const kw=(memSearch.value||'').trim().toLowerCase();
-  const t=memTeam.value, pos=memPos.value;
-  const list=players.filter(p=>{
+  const members = await loadMembers();
+  hydrateMemberFilters(members);
+
+  memberNo.hidden = true;
+  const kw = (memSearch.value||'').trim().toLowerCase();
+  const t  = memTeam.value;
+  const pos= memPos.value;
+
+  const list = members.filter(p=>{
     const okKw = kw ? p.name.toLowerCase().includes(kw) : true;
-    const okT  = t ? p.team===t : true;
-    const okP  = pos ? ((p.position||p.type)===pos) : true;
+    const okT  = t ? (p.team===t) : true;
+    const okP  = pos ? ((p.position||'')===pos) : true;
     return okKw && okT && okP;
   });
-  memberGrid.innerHTML='';
-  if(!list.length){ memberNo.hidden=false; memberNo.textContent='검색된 부원이 없습니다.'; return; }
+
+  memberGrid.innerHTML = '';
+  if(!list.length){
+    memberNo.hidden = false;
+    memberNo.textContent = '검색된 부원이 없습니다.';
+    return;
+  }
   list.forEach(p=>memberGrid.appendChild(mkCard(p)));
 }
 [memSearch, memTeam, memPos].forEach(el=>el.addEventListener('input', renderMembers));
