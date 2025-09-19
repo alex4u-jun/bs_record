@@ -468,30 +468,6 @@
       }
     },
     {
-      "id": "evt_0020",
-      "gameId": "2025-09-19_CSIA@Leaders",
-      "createdAt": 1758252308588,
-      "updatedAt": 1758252308588,
-      "inning": 2,
-      "half": "말",
-      "offenseTeam": "CSIA",
-      "defenseTeam": "Leaders",
-      "pitcherName": "이종경쌤 - leaders",
-      "hitterName": "김석민(용병)",
-      "pitchCountDelta": 6,
-      "inningsDelta": 0,
-      "earnedRunsDelta": 0,
-      "pitcherEvent": "피안타",
-      "pitcherDecision": null,
-      "hitterEvent": "1루타",
-      "rbiDelta": 0,
-      "runScoredDelta": 0,
-      "errorInfo": {
-        "batterROE": false,
-        "basesAdvanced": 0
-      }
-    },
-    {
       "id": "evt_0021",
       "gameId": "2025-09-19_CSIA@Leaders",
       "createdAt": 1758252355936,
