@@ -159,6 +159,44 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
 .game-title{ font-weight:900 }
 .score-pill{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:var(--muted); font-weight:900 }
 
+/* ==== 기록/통계 상단 툴바 리디자인 ==== */
+.tools.column{ display:flex; flex-direction:column; gap:18px; }
+.menu-row{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+
+.chip-label{
+  border:1.5px solid var(--border);
+  background:var(--muted);
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:999px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+}
+.chip-label.active{
+  background:var(--brand);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 8px 20px var(--ring);
+}
+
+.menu-chips{
+  list-style:none; display:flex; gap:28px; flex-wrap:wrap; margin:0; padding:0;
+}
+.menu-chips .tab{
+  padding:0; border:none; background:none; cursor:pointer;
+  color:var(--text); font-weight:900; letter-spacing:.2px;
+  opacity:.75; transition:opacity .15s, transform .04s;
+}
+.menu-chips .tab:hover{ opacity:1; transform:translateY(-1px); }
+.menu-chips .tab.active{ opacity:1; color:var(--brand); }
+
+/* 모바일 간격 미세조정 */
+@media (max-width:560px){
+  .menu-chips{ gap:18px; }
+}
+
+
 /* ===================== MOBILE LAYOUT (<=560px) ===================== */
 @media (max-width: 560px){
   .wrap{ padding:10px 12px }
@@ -280,27 +318,36 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
       <div class="card lg">
         <h3>기록 및 통계</h3>
         <div class="sub">이름을 검색하면 해당 선수의 모든 스탯과 각 항목의 순위가 한 번에 표시됩니다. 특정 분야를 선택하면 전체 랭킹을 보여줍니다.</div>
-        <div class="tools">
-          <input id="searchInput" placeholder="선수 이름 검색 (실시간)" style="max-width:340px">
-          <span class="pill">타자 분야</span>
-          <ul id="hitterMenu" style="list-style:none; display:flex; gap:6px; flex-wrap:wrap; margin:0">
-            <li class="tab" data-stat="타율">타율</li>
-            <li class="tab" data-stat="홈런">홈런</li>
-            <li class="tab" data-stat="출루율">출루율</li>
-            <li class="tab" data-stat="OPS">OPS</li>
-            <li class="tab" data-stat="타점">타점</li>
-            <li class="tab" data-stat="WAR">WAR</li>
-          </ul>
-          <span class="pill">투수 분야</span>
-          <ul id="pitcherMenu" style="list-style:none; display:flex; gap:6px; flex-wrap:wrap; margin:0">
-            <li class="tab" data-stat="승리">승리</li>
-            <li class="tab" data-stat="세이브">세이브</li>
-            <li class="tab" data-stat="홀드">홀드</li>
-            <li class="tab" data-stat="삼진">삼진</li>
-            <li class="tab" data-stat="ERA">ERA</li>
-            <li class="tab" data-stat="WHIP">WHIP</li>
-          </ul>
-        </div>
+        <div class="tools column" id="statToolbar">
+  <input id="searchInput" placeholder="선수 이름 검색 (실시간)" style="max-width:340px">
+
+  <!-- 1줄: 타자 분야 -->
+  <div class="menu-row">
+    <button class="chip-label active" id="chipHit">타자 분야</button>
+    <ul id="hitterMenu" class="menu-chips">
+      <li class="tab" data-stat="타율">타율</li>
+      <li class="tab" data-stat="홈런">홈런</li>
+      <li class="tab" data-stat="출루율">출루율</li>
+      <li class="tab" data-stat="OPS">OPS</li>
+      <li class="tab" data-stat="타점">타점</li>
+      <li class="tab" data-stat="WAR">WAR</li>
+    </ul>
+  </div>
+
+  <!-- 2줄: 투수 분야 -->
+  <div class="menu-row">
+    <button class="chip-label" id="chipPit">투수 분야</button>
+    <ul id="pitcherMenu" class="menu-chips">
+      <li class="tab" data-stat="승리">승리</li>
+      <li class="tab" data-stat="세이브">세이브</li>
+      <li class="tab" data-stat="홀드">홀드</li>
+      <li class="tab" data-stat="삼진">삼진</li>
+      <li class="tab" data-stat="ERA">ERA</li>
+      <li class="tab" data-stat="WHIP">WHIP</li>
+    </ul>
+  </div>
+</div>
+
       </div>
 
       <div class="card lg" id="rankingContent">
@@ -817,9 +864,18 @@ const gamesEmpty = document.getElementById('gamesEmpty');
 
 function abbrev(tag){
   switch(tag){
-    case '1루타': return '1안'; case '2루타': return '2루'; case '3루타': return '3루'; case '홈런': return 'HR';
-    case '볼넷': return 'BB'; case '삼진': return 'SO'; case '희생플라이': return 'SF';
-    case '내야땅볼': return '땅'; case '플라이아웃': return '플'; default: return tag||''; }
+    case '1루타': return '안타';
+    case '2루타': return '2루타';
+    case '3루타': return '3루타';
+    case '홈런':  return 'HR';
+    case '볼넷':  return '볼넷';
+    case '삼진':  return '삼진';
+    case '희생플라이': return 'SF';
+    case '내야땅볼': return '땅볼';
+    case '플라이아웃': return '플';
+    case '수비 실책':  return 'E';          // ⬅️ 추가: 실책도 매트릭스/이벤트표에 표시
+    default: return tag||'';
+  }
 }
 function computeBox(events, away, home){
   const by={}; by[away]={R:0,H:0,E:0}; by[home]={R:0,H:0,E:0};
@@ -828,6 +884,7 @@ function computeBox(events, away, home){
     by[t].R += (e.run||0);
     const h=e.hitterEvent||'';
     if(h==='1루타'||h==='2루타'||h==='3루타'||h==='홈런') by[t].H += 1;
+    if(h==='수비 실책') by[t].E += 1; // 팀 실책 카운트(있으면)
   }
   return by;
 }
@@ -924,8 +981,49 @@ function renderEventTable(events){
     gamesList.appendChild(card);
   });
 })();
+  // === 통계 메뉴 그룹 칩 활성화 제어 ===
+  const chipHit = document.getElementById('chipHit');
+  const chipPit = document.getElementById('chipPit');
+  function setGroupActive(which){          // 'hit' | 'pit' | null
+    chipHit.classList.toggle('active', which==='hit');
+    chipPit.classList.toggle('active', which==='pit');
+  }
 
-// 초기 보이기: 홈
+  // 기존 메뉴 핸들러에 그룹 활성화만 추가
+  hitterMenu.onclick = async (e)=>{
+    if(e.target?.dataset?.stat){
+      setGroupActive('hit');
+      searchInput.value=''; // 메뉴 클릭 시 검색 초기화(선택)
+      [...hitterMenu.children, ...pitcherMenu.children].forEach(x=>x.classList.remove('active'));
+      e.target.classList.add('active');
+      renderRanking(e.target.dataset.stat, ['ERA','WHIP'].includes(e.target.dataset.stat));
+    }
+  };
+  pitcherMenu.onclick = async (e)=>{
+    if(e.target?.dataset?.stat){
+      setGroupActive('pit');
+      searchInput.value='';
+      [...hitterMenu.children, ...pitcherMenu.children].forEach(x=>x.classList.remove('active'));
+      e.target.classList.add('active');
+      renderRanking(e.target.dataset.stat, ['ERA','WHIP'].includes(e.target.dataset.stat));
+    }
+  };
+
+  // 검색 입력 시 두 그룹 칩 비활성화 + 메뉴 활성화 해제
+  searchInput.addEventListener('input', ()=>{
+    if(searchInput.value.trim()){
+      setGroupActive(null);
+      [...hitterMenu.children, ...pitcherMenu.children].forEach(x=>x.classList.remove('active'));
+      renderBySearch();
+    }else{
+      document.getElementById('rankingContent').innerHTML =
+        '<div class="no-data">이름을 입력하거나, 위에서 분야를 선택하세요.</div>';
+    }
+  });
+
+  // 칩(텍스트) 클릭 시엔 동작 없음(장식), 필요하면 스크롤 포커싱 정도만:
+  chipHit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
+  chipPit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
 </script>
 </body>
 </html>
