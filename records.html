@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CSIALeaders | 기록실</title>
+<title>CSIALeaders | 기록</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -1052,9 +1052,10 @@ function renderEventTable(events){
   chipHit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
   chipPit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
 
-// Apps Script 웹 앱 URL (반드시 웹 앱으로 배포 후 "익명 사용자" 접근 허용해야 함)
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwC2EyFh7-oShUuJ5oerGFUwOf5_OGst7To-Qt_FjvguwqxNV6HIZp14TUz-4GpJ2Aw/exec"; 
+// Google Apps Script 웹 앱 URL
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwC2EyFh7-oShUuJ5oerGFUwOf5_OGst7To-Qt_FjvguwqxNV6HIZp14TUz-4GpJ2Aw/exec";
 
+// 사용자 고유 ID 저장 (로컬 저장소)
 function getVoterId(){
   let id = localStorage.getItem('mvp_voter_id');
   if(!id){
@@ -1063,17 +1064,24 @@ function getVoterId(){
   }
   return id;
 }
-function votedKey(){ return 'mvp_voted_' + new Date().toISOString().slice(0,10); }
 
+// 하루에 한 번만 투표 허용
+function votedKey(){ 
+  return 'mvp_voted_' + new Date().toISOString().slice(0,10); 
+}
+
+// ✅ 투표 전송
 async function sendVote(player, team){
   if(localStorage.getItem(votedKey())){ 
     alert('오늘 이미 투표했습니다!'); 
     return; 
   }
+
   try {
+    // POST 요청 (no-cors → 성공 여부는 확인 불가)
     await fetch(GAS_URL, {
       method:'POST',
-      mode:'no-cors',   // 👈 추가
+      mode:'no-cors',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         player, team,
@@ -1081,23 +1089,31 @@ async function sendVote(player, team){
         ua: navigator.userAgent.slice(0,120)
       })
     });
+
+    // 로컬 저장
     localStorage.setItem(votedKey(), '1');
     alert('투표 완료!');
-    // 👉 no-cors 모드에서는 응답을 못 읽으므로
-    // 바로 refreshVoteCounts() 하지 말고, 일정 시간 뒤 호출
-    setTimeout(refreshVoteCounts, 2000);
+
+    // 잠시 대기 후 결과 새로고침
+    setTimeout(refreshVoteCounts, 1500);
   } catch(e) {
     alert('투표 오류: ' + e.message);
   }
 }
 
+// ✅ 투표 결과 불러오기
 async function fetchVoteCounts(){
-  try{
+  try {
     const res = await fetch(GAS_URL, { method:'GET' });
     if(!res.ok) return {};
     return await res.json();
-  }catch(e){ return {}; }
+  }catch(e){ 
+    console.error(e);
+    return {}; 
+  }
 }
+
+// ✅ 화면에 결과 표시
 async function refreshVoteCounts(){
   const counts = await fetchVoteCounts();
   const ul=document.getElementById('mvpVoteResults');
@@ -1108,7 +1124,10 @@ async function refreshVoteCounts(){
     ul.appendChild(li);
   });
 }
+
+// 페이지 로드시 결과 갱신
 window.addEventListener('load', refreshVoteCounts);
+
 </script>
 </body>
 </html>
