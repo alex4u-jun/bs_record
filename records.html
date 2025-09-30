@@ -238,6 +238,17 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
   .card{ grid-column: 1 / -1 }
   .row,.row-2{ grid-template-columns:1fr }
 }
+.vote-btn{
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:4px 8px;
+  background:var(--brand);
+  color:#fff;
+  font-weight:700;
+  margin-left:8px;
+  cursor:pointer;
+}
+.vote-btn:hover{ background:var(--brand-2); }
 </style>
 </head>
 <body>
@@ -293,6 +304,20 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
           <div id="mvpMain">MVP: 진승우</div>
           <div id="mvpSub">(Leaders/타자)</div>
         </div>
+      </div>
+    </div>
+    <div class="card lg" id="mvpVoteBox">
+        <h3>MVP 투표</h3>
+        <div class="sub">오늘의 MVP를 직접 투표하세요! (브라우저당 하루 1표)</div>
+        <table class="table">
+          <thead><tr><th>선수</th><th>팀</th><th>투표</th></tr></thead>
+          <tbody>
+            <tr><td>진승우</td><td>Leaders</td><td><button class="vote-btn" onclick="sendVote('진승우','Leaders')">투표</button></td></tr>
+            <tr><td>이동권</td><td>CSIA</td><td><button class="vote-btn" onclick="sendVote('이동권','CSIA')">투표</button></td></tr>
+          </tbody>
+        </table>
+        <p style="font-weight:700; margin-top:10px">실시간 집계 결과:</p>
+        <ul id="mvpVoteResults" style="list-style:none; padding:0; font-weight:800"></ul>
       </div>
     </div>
   </section>
@@ -410,7 +435,7 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
       <div class="scroll-x" style="margin-top:10px">
         <table class="table wide-table" id="h2hAggTable">
           <thead><tr>
-            <th>타석</th><th>안타</th><th>2B</th><th>3B</th><th>HR</th><th>BB</th><th>SO</th>
+            <th>타석</th><th>1B</th><th>2B</th><th>3B</th><th>HR</th><th>BB</th><th>SO</th>
             <th>RBI</th><th>R</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th>
           </tr></thead>
           <tbody></tbody>
@@ -1026,9 +1051,57 @@ function renderEventTable(events){
   // 칩(텍스트) 클릭 시엔 동작 없음(장식), 필요하면 스크롤 포커싱 정도만:
   chipHit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
   chipPit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
+
+const GAS_URL = "https://docs.google.com/spreadsheets/d/11bOxFo__bQOWE3L6lFp3mZ3-TNonPYrP5cKErY-p-k8/edit?usp=drivesdk"; // Google Apps Script 웹 앱 URL
+
+function getVoterId(){
+  let id = localStorage.getItem('mvp_voter_id');
+  if(!id){
+    id = crypto.getRandomValues(new Uint32Array(4)).join('-');
+    localStorage.setItem('mvp_voter_id', id);
+  }
+  return id;
+}
+function votedKey(){ return 'mvp_voted_' + new Date().toISOString().slice(0,10); }
+
+async function sendVote(player, team){
+  if(localStorage.getItem(votedKey())){ alert('오늘 이미 투표했습니다!'); return; }
+  const res = await fetch(GAS_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      player, team,
+      voterId: getVoterId(),
+      ua: navigator.userAgent.slice(0,120)
+    })
+  });
+  if(res.ok){
+    localStorage.setItem(votedKey(), '1');
+    alert('투표 완료!');
+    await refreshVoteCounts();
+  } else {
+    alert('투표 오류');
+  }
+}
+
+async function fetchVoteCounts(){
+  try{
+    const res = await fetch(GAS_URL, { method:'GET' });
+    if(!res.ok) return {};
+    return await res.json();
+  }catch(e){ return {}; }
+}
+async function refreshVoteCounts(){
+  const counts = await fetchVoteCounts();
+  const ul=document.getElementById('mvpVoteResults');
+  ul.innerHTML='';
+  Object.entries(counts).forEach(([name,cnt])=>{
+    const li=document.createElement('li');
+    li.textContent=`${name}: ${cnt}표`;
+    ul.appendChild(li);
+  });
+}
+window.addEventListener('load', refreshVoteCounts);
 </script>
 </body>
 </html>
-
-
-
