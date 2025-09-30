@@ -1052,7 +1052,8 @@ function renderEventTable(events){
   chipHit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
   chipPit.onclick = ()=> window.scrollBy({top:1, behavior:'smooth'});
 
-const GAS_URL = "https://docs.google.com/spreadsheets/d/11bOxFo__bQOWE3L6lFp3mZ3-TNonPYrP5cKErY-p-k8/edit?usp=drivesdk"; // Google Apps Script 웹 앱 URL
+// Apps Script 웹 앱 URL (반드시 웹 앱으로 배포 후 "익명 사용자" 접근 허용해야 함)
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx1234567890abcdef/exec"; 
 
 function getVoterId(){
   let id = localStorage.getItem('mvp_voter_id');
@@ -1105,4 +1106,7 @@ window.addEventListener('load', refreshVoteCounts);
 </script>
 </body>
 </html>
+
+
+
 
