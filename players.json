@@ -23,7 +23,7 @@
   {
     "name": "이원준",
     "type": "타자",
-    "team": "CSIA",
+    "team": "Leaders",
     "stats": {
       "1루타": 4,
       "2루타": 1,
@@ -185,7 +185,7 @@
   {
     "name": "설승환",
     "type": "타자",
-    "team": "Leaders",
+    "team": "CSIA",
     "stats": {
       "1루타": 2,
       "2루타": 0,
@@ -308,7 +308,7 @@
   {
     "name": "한서진",
     "type": "타자",
-    "team": "Leaders",
+    "team": "CSIA",
     "stats": {
       "1루타": 3,
       "2루타": 1,
@@ -390,7 +390,7 @@
   {
     "name": "이원준",
     "type": "투수",
-    "team": "CSIA",
+    "team": "Leaders",
     "stats": {
       "투구수": 0,
       "삼진": 0,
