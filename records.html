@@ -355,6 +355,7 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
       <li class="tab" data-stat="출루율">출루율</li>
       <li class="tab" data-stat="OPS">OPS</li>
       <li class="tab" data-stat="타점">타점</li>
+      <li class="tab" data-stat="도루">도루</li><!-- ✅ 추가: 도루 -->
       <li class="tab" data-stat="WAR">WAR</li>
     </ul>
   </div>
@@ -679,7 +680,7 @@ function calcAB(p){ const s=p.stats||{}, H=(s['1루타']||0)+(s['2루타']||0)+(
 function PAof(p){ if(p.PA!=null) return +p.PA; const AB=calcAB(p), BB=(p.stats||{})['볼넷']||0, SF=(p.stats||{})['희생플라이']||0; return AB+BB+SF; }
 function AVG(p){ const s=p.stats||{}, H=(s['1루타']||0)+(s['2루타']||0)+(s['3루타']||0)+(s['홈런']||0); const AB=calcAB(p); return AB? H/AB:0 }
 function OBP(p){ const s=p.stats||{}, H=(s['1루타']||0)+(s['2루타']||0)+(s['3루타']||0)+(s['홈런']||0); const BB=s['볼넷']||0, AB=calcAB(p), SF=s['희생플라이']||0; const den=AB+BB+SF; return den? (H+BB)/den:0 }
-function SLG(p){ const s=p.stats||{}, AB=calcAB(p); const TB=(s['1루타']||0)+2*(s['2루타']||0)+3*(s['3루타']||0)+4*(s['홈런']||0); return AB? TB/AB:0 }
+function SLG(p){ const s=p.stats||{}, AB=calcAB(p); const TB=(s['1루타']||0)+2*(s['2루타']||0)+3*(s['3루타']||0)+(s['홈런']||0)*4; return AB? TB/AB:0 }
 function OPS(p){ return OBP(p)+SLG(p) }
 function ERA(p){ const s=p.stats||{}, ER=s['자책점']||0, IP=s['이닝']||0; return IP? (ER*9)/IP:0 }
 function WHIP(p){ const s=p.stats||{}, BB=s['볼넷']||0, H=s['피안타']||0, IP=s['이닝']||0; return IP? (BB+H)/IP:0 }
@@ -687,11 +688,36 @@ const WWT={ single:.90,double:1.25,triple:1.6,hr:2,bb:.7 }, WOBASCALE=1.15, RPW=
 function wobaNum(p){ const s=p.stats||{}; return (s['1루타']||0)*WWT.single + (s['2루타']||0)*WWT.double + (s['3루타']||0)*WWT.triple + (s['홈런']||0)*WWT.hr + (s['볼넷']||0)*WWT.bb }
 function leagueWoba(hitters){ let num=0, den=0; hitters.forEach(h=>{ num+=wobaNum(h); den+=PAof(h); }); return den? num/den:0 }
 function buildWar(hitters){ const L=leagueWoba(hitters), map={}; hitters.forEach(p=>{ const pa=PAof(p)||0; if(!pa) return map[p.name]=0; const woba=wobaNum(p)/pa; const wRAA=(woba-L)/WOBASCALE*pa; const rep=REP_PER_600*(pa/600); map[p.name]=(wRAA+rep)/RPW; }); return map; }
-function getVal(p,stat){ switch(stat){ case '타율':return AVG(p); case '출루율':return OBP(p); case 'OPS':return OPS(p); case '홈런': case '타점': case '승리': case '세이브': case '홀드': case '삼진': return (p.stats||{})[stat]||0; case 'ERA':return ERA(p); case 'WHIP':return WHIP(p); case 'WAR':return p.__war||0; default:return 0; } }
+
+/* ✅ 스탯 값 읽기: 도루 추가 */
+function getVal(p,stat){
+  switch(stat){
+    case '타율': return AVG(p);
+    case '출루율': return OBP(p);
+    case 'OPS': return OPS(p);
+    case 'ERA': return ERA(p);
+    case 'WHIP': return WHIP(p);
+    case 'WAR': return p.__war||0;
+    /* 카운팅 스탯 */
+    case '홈런':
+    case '타점':
+    case '승리':
+    case '세이브':
+    case '홀드':
+    case '삼진':
+    case '도루':     // ⬅️ 추가
+      return (p.stats||{})[stat]||0;
+    default: return 0;
+  }
+}
 function dispVal(p,stat){ const v=getVal(p,stat); if(['타율','출루율','OPS','WHIP'].includes(stat)) return v.toFixed(3); if(stat==='ERA') return v.toFixed(2); if(stat==='WAR') return v.toFixed(1); return v; }
 function medal(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':'' }
 let __pctCut=0;
+/* 자격 컷 산정(PA 하위 30% 컷) */
 function pctCut(players,p=.7){ const list=players.filter(p=>p.type==='타자').map(PAof).filter(x=>Number.isFinite(x)&&x>=0).sort((a,b)=>a-b); if(!list.length) return 0; const idx=Math.floor((list.length-1)*(1-p)); return Math.max(list[idx],0); }
+
+/* 어떤 항목이 '타자용'인지 구분 (정렬/풀 선택에 필요) — 도루 포함 */
+function isHitterStat(stat){ return ['타율','홈런','출루율','OPS','타점','WAR','도루'].includes(stat); }
 function isAscPreferred(stat){ return ['ERA','WHIP'].includes(stat) }
 
 function tableRanking(players, stat, nonQ){
@@ -715,18 +741,25 @@ function tableRanking(players, stat, nonQ){
   }
   return t;
 }
+
+/* 규정 적용 (도루는 기본적으로 타자풀이지만 컷 적용은 그대로 유지) */
 function applyQual(list,stat){
-  const isH=['타율','홈런','출루율','OPS','타점','WAR'].includes(stat);
+  const hitterStat = isHitterStat(stat);
   const A=[], B=[];
   list.forEach(p=>{
-    if(isH){ const need=__pctCut; const have=PAof(p); (have>=need?A:B).push(p); }
-    else{ A.push(p); }
+    if(hitterStat){
+      const need=__pctCut; const have=PAof(p);
+      (have>=need?A:B).push(p);
+    }else{
+      A.push(p);
+    }
   });
   return {A,B};
 }
+
 async function renderRanking(stat, asc){
   const all=await loadPlayers();
-  const isH=['타율','홈런','출루율','OPS','타점','WAR'].includes(stat);
+  const isH = isHitterStat(stat);
   let list=all.filter(p=> isH ? p.type==='타자' : p.type==='투수');
   if(stat==='WAR'){ const map=buildWar(all.filter(p=>p.type==='타자')); list.forEach(p=>p.__war=map[p.name]||0) }
   list.sort((a,b)=>{
@@ -739,7 +772,7 @@ async function renderRanking(stat, asc){
   rankingContent.innerHTML=''; rankingContent.appendChild(tableRanking(A,stat,B));
 }
 
-/* 개인 요약 + 항목별 순위 */
+/* 개인 요약 + 항목별 순위 (요청은 도루 순위 추가였으니, 요약 표 구성은 기존 유지) */
 function playerSummaryHTML(p, all){
   const Hstats = ['타율','출루율','OPS','홈런','타점','WAR'];
   const Pstats = ['ERA','WHIP','승리','세이브','홀드','삼진'];
@@ -1132,9 +1165,4 @@ window.addEventListener('load', refreshVoteCounts);
 </script>
 </body>
 </html>
-
-
-
-
-
 
