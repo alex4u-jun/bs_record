@@ -499,6 +499,24 @@ button.stat-btn{
             </div>
           </div>
 
+          <!-- 도루 / 도루자 -->
+          <div class="num-row">
+            <label>도루(+)</label>
+            <div class="spin-wrap">
+              <button class="spin-btn" data-spin="dec" data-target="hitterSBInput">▼</button>
+              <input id="hitterSBInput" class="spin-input" type="number" min="0" step="1" value="0" />
+              <button class="spin-btn" data-spin="inc" data-target="hitterSBInput">▲</button>
+            </div>
+          </div>
+          <div class="num-row">
+            <label>도루자(+)</label>
+            <div class="spin-wrap">
+              <button class="spin-btn" data-spin="dec" data-target="hitterCSInput">▼</button>
+              <input id="hitterCSInput" class="spin-input" type="number" min="0" step="1" value="0" />
+              <button class="spin-btn" data-spin="inc" data-target="hitterCSInput">▲</button>
+            </div>
+          </div>
+
           <!-- ROE 진루 입력칸 (수비 실책 선택 시에만 표시) -->
           <div id="roeAdvBox" style="display:none;">
             <div class="num-row">
@@ -640,8 +658,8 @@ let viewInning = 1;
 let viewHalf = '초';
 
 /* ==== 스탯 헤더 ==== */
-// ★ ROE 누적 진루 합산용 '실책진루' 추가
-const hitterStatsHeaders  = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','수비 실책','실책진루','타점','득점'];
+// ★ ROE 누적 진루 합산용 '실책진루' + 도루(SB)/도루자(CS)
+const hitterStatsHeaders  = ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','수비 실책','실책진루','타점','득점','도루','도루자'];
 const pitcherStatsHeaders = ['투구수','삼진','볼넷','피안타','피홈런','자책점','이닝','승리','패배','홀드','세이브','사구'];
 
 /* ==== Storage helpers ==== */
@@ -735,6 +753,8 @@ function migratePlayerStatsForROE(arr){
   (arr||[]).forEach(p=>{
     if(p.type==='타자'){
       if(typeof p.stats['실책진루']!=='number') p.stats['실책진루']=0;
+      if(typeof p.stats['도루']!=='number') p.stats['도루']=0;
+      if(typeof p.stats['도루자']!=='number') p.stats['도루자']=0;
     }
   });
 }
@@ -997,6 +1017,8 @@ function exitEditMode(){
   document.getElementById('pitcherERInput').value = 0;
   document.getElementById('hitterRBIInput').value = 0;
   document.getElementById('hitterRUNInput').value = 0;
+  document.getElementById('hitterSBInput') && (document.getElementById('hitterSBInput').value = 0);
+  document.getElementById('hitterCSInput') && (document.getElementById('hitterCSInput').value = 0);
   document.getElementById('hitterROEAdvInput') && (document.getElementById('hitterROEAdvInput').value = 0);
   document.getElementById('roeAdvBox').style.display = 'none';
 }
@@ -1023,6 +1045,8 @@ function formatOutcome(o){
   }
   if(o.rbi && o.rbi>0) parts.push(`타점 +${o.rbi}`);
   if(o.run && o.run>0) parts.push(`득점 +${o.run}`);
+  if(o.sb  && o.sb>0)  parts.push(`도루 +${o.sb}`);
+  if(o.cs  && o.cs>0)  parts.push(`도루자 +${o.cs}`);
   if(o.pitcherEvt) parts.push(`투수 ${o.pitcherEvt}`);
   if(o.pitcherDecision) parts.push(o.pitcherDecision);
   if(o.pitchCount) parts.push(`투구수 +${o.pitchCount}`);
@@ -1401,6 +1425,8 @@ function renderHitterEditor(hitter){
     ['1루타','2루타','3루타','홈런','삼진','볼넷','희생플라이','내야땅볼','플라이아웃','수비 실책']);
   document.getElementById('hitterRBIInput').value = 0;
   document.getElementById('hitterRUNInput').value = 0;
+  const sbEl=document.getElementById('hitterSBInput');  if(sbEl) sbEl.value=0;
+  const csEl=document.getElementById('hitterCSInput');  if(csEl) csEl.value=0;
   document.getElementById('roeAdvBox').style.display = 'none';
 }
 
@@ -1610,6 +1636,8 @@ function applyOutcomeToUI(outcome){
   document.getElementById('pitcherERInput').value        = outcome.er || 0;
   document.getElementById('hitterRBIInput').value        = outcome.rbi || 0;
   document.getElementById('hitterRUNInput').value        = outcome.run || 0;
+  const sbEl=document.getElementById('hitterSBInput'); if(sbEl) sbEl.value = outcome.sb || 0;
+  const csEl=document.getElementById('hitterCSInput'); if(csEl) csEl.value = outcome.cs || 0;
   selectChipByValue(document.getElementById('pitcherGroup1'), outcome.pitcherEvt||'');
   selectChipByValue(document.getElementById('pitcherGroup2'), outcome.pitcherDecision||'');
   selectChipByValue(document.getElementById('hitterGroup'),   outcome.hitterEvt||'');
@@ -1662,6 +1690,8 @@ function applyOutcomeToStats(pitcherName, hitterName, outcome, sign){
     if(outcome.hitterEvt){ h.stats[outcome.hitterEvt] = (h.stats[outcome.hitterEvt]||0) + s(1); }
     if(outcome.rbi){ h.stats['타점'] = (h.stats['타점']||0) + s(outcome.rbi); }
     if(outcome.run){ h.stats['득점'] = (h.stats['득점']||0) + s(outcome.run); }
+    if(outcome.sb){  h.stats['도루']   = (h.stats['도루']  ||0) + s(outcome.sb); }
+    if(outcome.cs){  h.stats['도루자'] = (h.stats['도루자']||0) + s(outcome.cs); }
     if(outcome.errorInfo?.batterROE){
       if(typeof h.stats['실책진루']!=='number') h.stats['실책진루']=0;
       h.stats['실책진루'] = (h.stats['실책진루']||0) + s(outcome.errorInfo.basesAdvanced||0);
@@ -1689,6 +1719,8 @@ function readCurrentOutcomeFromUI(){
 
   const rbiDelta  = Math.max(0, parseInt(document.getElementById('hitterRBIInput').value)||0);
   const runDelta  = Math.max(0, parseInt(document.getElementById('hitterRUNInput').value)||0);
+  const sbDelta   = Math.max(0, parseInt(document.getElementById('hitterSBInput')?.value||'0')||0);
+  const csDelta   = Math.max(0, parseInt(document.getElementById('hitterCSInput')?.value||'0')||0);
 
   const isROE = (hitterEvt === '수비 실책');
   const advEl = document.getElementById('hitterROEAdvInput');
@@ -1698,6 +1730,8 @@ function readCurrentOutcomeFromUI(){
     hitterEvt: hitterEvt || '',
     rbi: rbiDelta || 0,
     run: runDelta || 0,
+    sb:  sbDelta  || 0,
+    cs:  csDelta  || 0,
     pitcherEvt,
     pitcherDecision: g2 || '',
     pitchCount: pitchCountDelta || 0,
@@ -1858,6 +1892,8 @@ document.getElementById('saveDuelBtn').addEventListener('click', ()=>{
   clearChipSelection(document.getElementById('hitterGroup'));
   document.getElementById('hitterRBIInput').value = 0;
   document.getElementById('hitterRUNInput').value = 0;
+  const sbEl = document.getElementById('hitterSBInput'); if(sbEl) sbEl.value = 0;
+  const csEl = document.getElementById('hitterCSInput'); if(csEl) csEl.value = 0;
   const advEl = document.getElementById('hitterROEAdvInput'); if(advEl) advEl.value = 0;
   document.getElementById('roeAdvBox').style.display = 'none';
 
@@ -1935,6 +1971,8 @@ function asGameRecordJSON(){
     hitterEvent: e.outcome?.hitterEvt || '',
     rbiDelta: e.outcome?.rbi || 0,
     runScoredDelta: e.outcome?.run || 0,
+    stolenBasesDelta: e.outcome?.sb || 0,
+    caughtStealingDelta: e.outcome?.cs || 0,
     errorInfo: {
       batterROE: !!(e.outcome?.errorInfo?.batterROE),
       basesAdvanced: e.outcome?.errorInfo?.basesAdvanced || 0
@@ -1977,6 +2015,8 @@ async function importGameRecord(){
         hitterEvt: ev.hitterEvent || '',
         rbi: ev.rbiDelta || 0,
         run: ev.runScoredDelta || 0,
+        sb:  ev.stolenBasesDelta || 0,
+        cs:  ev.caughtStealingDelta || 0,
         pitcherEvt: ev.pitcherEvent || '',
         pitcherDecision: ev.pitcherDecision || '',
         pitchCount: ev.pitchCountDelta || 0,
