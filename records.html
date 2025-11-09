@@ -287,12 +287,12 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
       <!-- Big Scoreboard -->
       <div class="card lg scoreboard">
         <div class="sb-inner">
-          <span class="sb-date" id="sb-date">2025-11-04</span>
+          <span class="sb-date" id="sb-date">2025-11-07</span>
           <div class="sb-line">
             <span class="sb-away" id="sb-away">CSIA</span>
-            <span class="sb-badge" id="sb-away-score">9</span>
+            <span class="sb-badge" id="sb-away-score">2</span>
             <span style="opacity:.75; font-weight:900">:</span>
-            <span class="sb-badge" id="sb-home-score">3</span>
+            <span class="sb-badge" id="sb-home-score">2</span>
             <span class="sb-home" id="sb-home">Leaders</span>
           </div>
         </div>
@@ -301,7 +301,7 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
       <!-- Small MVP banner -->
       <div class="card lg" id="mvpBanner">
         <div style="text-align:center">
-          <div id="mvpMain">MVP: 한결</div>
+          <div id="mvpMain">MVP: 강세영</div>
           <div id="mvpSub">(CSIA/타자)</div>
         </div>
       </div>
@@ -458,7 +458,7 @@ details.disclosure[open] summary{ border-bottom:1px solid var(--border) }
 
 <script>
 /* ============= BASIC CONFIG ============= */
-const SCOREBOARD = { date:'2025-09-19', awayTeam:'CSIA', awayScore:9, homeTeam:'Leaders', homeScore:3 };
+const SCOREBOARD = { date:'2025-11-07', awayTeam:'CSIA', awayScore:2, homeTeam:'Leaders', homeScore:2 };
 const PLAYER_JSON_URL = "https://alex4u-jun.github.io/bs_record/players.json";
 const MEMBER_JSON_URL = "https://alex4u-jun.github.io/bs_record/players_introduce.json"; // ⬅️ 부원 소개 전용
 const GAMERECORD_JSON_URLS = [
@@ -467,6 +467,7 @@ const GAMERECORD_JSON_URLS = [
   "https://alex4u-jun.github.io/bs_record/gamerecord_3.json",
   "https://alex4u-jun.github.io/bs_record/gamerecord_4.json",
   "https://alex4u-jun.github.io/bs_record/gamerecord_5.json",
+  "https://alex4u-jun.github.io/bs_record/gamerecord_6.json",
 ];
 
 /* ============= NAV / THEME ============= */
@@ -1165,4 +1166,5 @@ window.addEventListener('load', refreshVoteCounts);
 </script>
 </body>
 </html>
+
 
