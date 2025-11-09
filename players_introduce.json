@@ -23,6 +23,6 @@
   { "name": "고예준", "age": 18, "school": "HS", "team": "CSIA",   "position": "LF", "backNumber": "2" },
   { "name": "김태준", "age": 18, "school": "HS", "team": "Leaders", "position": "LF", "backNumber": "16" },
   { "name": "우현민", "age": 18, "school": "HS", "team": "CSIA",   "position": "REF", "backNumber": "-" },
-  { "name": "이동권", "age": 18, "school": "HS", "team": "CSIA",   "position": "1B / P", "backNumber": "1" }
+  { "name": "이동권", "age": 18, "school": "HS", "team": "CSIA",   "position": "1B / P", "backNumber": "1" },
   { "name": "김석민", "age": 18, "school": "HS", "team": "Leaders",   "position": "RF", "backNumber": "99" }
 ]
