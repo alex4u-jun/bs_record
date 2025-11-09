@@ -1,5 +1,4 @@
 [
-  { "name": "양준혁", "age": 14, "school": "MS", "team": "Leaders", "position": "SS", "backNumber": "10" },
   { "name": "한서진", "age": 14, "school": "MS", "team": "Leaders", "position": "3B", "backNumber": "23" },
   { "name": "박재휘", "age": 15, "school": "HS", "team": "CSIA", "position": "1B / P", "backNumber": "37" },
   { "name": "정민준", "age": 15, "school": "HS", "team": "Leaders", "position": "2B", "backNumber": "51" },
